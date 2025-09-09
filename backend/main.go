@@ -12,11 +12,15 @@ import (
 	"wedding-backend/internal/handlers"
 )
 
-// Загружает переменные окружения из .env
+// loadEnv — загружает .env только в dev, но не нужен на Render
 func loadEnv() {
+	if _, err := os.Stat(".env"); os.IsNotExist(err) {
+		log.Println("⚠️ Файл .env не найден — используем переменные окружения (например, на Render)")
+		return
+	}
+
 	file, err := os.Open(".env")
 	if err != nil {
-		log.Println("⚠️ Файл .env не найден — используем переменные из окружения")
 		return
 	}
 	defer file.Close()
@@ -27,16 +31,17 @@ func loadEnv() {
 		if line == "" || strings.HasPrefix(line, "#") || !strings.Contains(line, "=") {
 			continue
 		}
-
 		parts := strings.SplitN(line, "=", 2)
 		key := strings.TrimSpace(parts[0])
 		value := strings.TrimSpace(parts[1])
-		os.Setenv(key, value)
+		if os.Getenv(key) == "" { // не перезаписываем, если уже задано (например, на Render)
+			os.Setenv(key, value)
+		}
 	}
 }
 
 func main() {
-	// Загружаем .env
+	// Загружаем .env только если он есть (для локальной разработки)
 	loadEnv()
 
 	// Подключаемся к БД
@@ -55,12 +60,23 @@ func main() {
 	// Добавляем CORS
 	handler := withCORS(mux)
 
-	// Запуск сервера
-	log.Println("🚀 Бэкенд запущен на http://localhost:8080")
-	log.Fatal(http.ListenAndServe(":8080", handler))
+	// Получаем порт от Render (или используем 8080 по умолчанию)
+	port := getPort()
+	log.Printf("🚀 Сервер запущен на :%s", port)
+
+	// Запуск
+	log.Fatal(http.ListenAndServe(":"+port, handler))
 }
 
-// Middleware: добавляет CORS-заголовки
+// Получаем порт из переменной окружения
+func getPort() string {
+	if p := os.Getenv("PORT"); p != "" {
+		return p
+	}
+	return "8080"
+}
+
+// Middleware: CORS
 func withCORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
