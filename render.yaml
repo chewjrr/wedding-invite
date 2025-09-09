@@ -5,9 +5,9 @@ services:
     env: go1.21
     region: frankfurt
     plan: free
-    rootDirectory: .
-    buildCommand: go build -o bin/wedding-api main.go
-    startCommand: ./bin/wedding-api
+    rootDirectory: backend
+    buildCommand: go build -o app main.go
+    startCommand: ./app
     envVars:
       - key: PORT
         value: 10000
