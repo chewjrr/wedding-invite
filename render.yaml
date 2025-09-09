@@ -5,7 +5,7 @@ services:
     env: go1.21
     region: frankfurt
     plan: free
-    rootDirectory: backend
+    rootDirectory: .
     buildCommand: go build -o bin/wedding-api main.go
     startCommand: ./bin/wedding-api
     envVars:
