@@ -14,8 +14,10 @@ var DB *sql.DB
 func Connect() {
 	connStr := os.Getenv("DATABASE_URL")
 	if connStr == "" {
-		log.Fatal("❌ Переменная DATABASE_URL не задана в .env")
+		log.Fatal("❌ Переменная DATABASE_URL не задана в окружении")
 	}
+
+	log.Printf("🔧 DATABASE_URL: %s", connStr) // 🔥 ВРЕМЕННЫЙ ЛОГ — УДАЛИ ПОСЛЕ ПРОВЕРКИ
 
 	var err error
 	DB, err = sql.Open("postgres", connStr)
