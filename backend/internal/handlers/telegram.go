@@ -1,4 +1,4 @@
-// backend/internal/handlers/telegram.go
+// backend/internal/handlers/telegram_webhook.go
 package handlers
 
 import (
@@ -7,7 +7,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -15,74 +14,63 @@ import (
 	"wedding-backend/internal/database"
 )
 
-// TelegramUpdate — структура входящего обновления
-type TelegramUpdate struct {
+type Update struct {
 	UpdateID int `json:"update_id"`
 	Message  struct {
-		MessageID int `json:"message_id"`
-		From      struct {
-			ID int64 `json:"id"`
-		} `json:"from"`
 		Chat struct {
 			ID int64 `json:"id"`
 		} `json:"chat"`
 		Text string `json:"text"`
-		Date int    `json:"date"`
 	} `json:"message"`
 }
 
-// HandleWebhook — обработчик вебхука от Telegram
 func HandleWebhook(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		return
 	}
 
-	var update TelegramUpdate
-	if err := json.NewDecoder(r.Body).Decode(&update); err != nil {
+	var update Update
+	body, _ := io.ReadAll(r.Body)
+	if err := json.Unmarshal(body, &update); err != nil {
 		log.Printf("❌ Ошибка парсинга вебхука: %v", err)
 		return
 	}
 
-	// Проверяем, что сообщение от владельца бота
-	ownerChatID := os.Getenv("CHAT_ID")
-	if ownerChatID == "" {
+	// Проверяем, что команда от владельца
+	ownerIDStr := os.Getenv("CHAT_ID")
+	if ownerIDStr == "" {
 		return
 	}
-	ownerID, _ := strconv.ParseInt(ownerChatID, 10, 64)
+	ownerID, _ := strconv.ParseInt(ownerIDStr, 10, 64)
+
 	if update.Message.Chat.ID != ownerID {
-		return // Игнорируем чужие команды
+		return // Игнорируем чужие сообщения
 	}
 
-	// Обрабатываем команду
 	text := strings.TrimSpace(update.Message.Text)
-	switch {
-	case text == "/start":
-		sendTelegramReply(update.Message.Chat.ID, "Привет! 🌸\n\nДоступные команды:\n\n/list — все пожелания\n/delete 5 — удалить по ID")
 
-	case text == "/list":
-		rows, err := database.DB.Query(`
-			SELECT id, name, message, created_at 
-			FROM wishes 
-			ORDER BY created_at DESC 
-			LIMIT 50`)
+	switch text {
+	case "/start":
+		sendTelegramMessage(ownerID, "Привет! 🌸\n\nДоступные команды:\n\n/list — все пожелания\n/delete 5 — удалить по ID")
+
+	case "/list":
+		rows, err := database.DB.Query("SELECT id, name, message FROM wishes ORDER BY created_at DESC LIMIT 30")
 		if err != nil {
-			sendTelegramReply(update.Message.Chat.ID, "❌ Ошибка базы данных.")
+			sendTelegramMessage(ownerID, "❌ Ошибка базы данных.")
 			return
 		}
 		defer rows.Close()
 
 		var response strings.Builder
-		response.WriteString("📋 <b>Все пожелания</b> (последние 50):\n\n")
+		response.WriteString("📋 <b>Все пожелания</b>:\n\n")
 		count := 0
 		for rows.Next() {
 			var id int
-			var name, message, createdAt string
-			if err := rows.Scan(&id, &name, &message, &createdAt); err != nil {
+			var name, message string
+			if err := rows.Scan(&id, &name, &message); err != nil {
 				continue
 			}
-			response.WriteString(fmt.Sprintf(
-				"<b>№%d</b> от <i>%s</i>:\n\"%s\"\n<code>Удалить: /delete %d</code>\n\n",
-				id, name, message, id))
+			response.WriteString(fmt.Sprintf("<b>%d.</b> %s: %s\n\n", id, name, message))
 			count++
 		}
 
@@ -90,61 +78,47 @@ func HandleWebhook(w http.ResponseWriter, r *http.Request) {
 			response.WriteString("Пока нет пожеланий.")
 		}
 
-		sendTelegramReply(update.Message.Chat.ID, response.String())
+		sendTelegramMessage(ownerID, response.String())
 
-	case strings.HasPrefix(text, "/delete "):
-		parts := strings.Fields(text)
-		if len(parts) != 2 {
-			sendTelegramReply(update.Message.Chat.ID, "Используй: <code>/delete 5</code>")
-			return
-		}
-
-		id, err := strconv.Atoi(parts[1])
-		if err != nil {
-			sendTelegramReply(update.Message.Chat.ID, "❌ ID должен быть числом.")
+	case "/delete":
+		var id int
+		fmt.Sscanf(text, "/delete %d", &id)
+		if id == 0 {
+			sendTelegramMessage(ownerID, "❌ Используй: /delete 5")
 			return
 		}
 
 		res, err := database.DB.Exec("DELETE FROM wishes WHERE id = $1", id)
 		if err != nil {
-			sendTelegramReply(update.Message.Chat.ID, "❌ Ошибка базы данных.")
+			sendTelegramMessage(ownerID, "❌ Ошибка базы данных.")
 			return
 		}
 
 		rowsAffected, _ := res.RowsAffected()
 		if rowsAffected > 0 {
-			sendTelegramReply(update.Message.Chat.ID, fmt.Sprintf("✅ Пожелание №%d удалено.", id))
+			sendTelegramMessage(ownerID, fmt.Sprintf("✅ Пожелание №%d удалено.", id))
 		} else {
-			sendTelegramReply(update.Message.Chat.ID, "❌ Пожелание с таким ID не найдено.")
+			sendTelegramMessage(ownerID, "❌ Пожелание с таким ID не найдено.")
 		}
 
 	default:
-		sendTelegramReply(update.Message.Chat.ID, "Неизвестная команда. Используй: /start")
+		sendTelegramMessage(ownerID, "Неизвестная команда. Используй: /start")
 	}
 }
 
-// Утилита: отправка ответа в Telegram
-func sendTelegramReply(chatID int64, text string) {
+func sendTelegramMessage(chatID int64, text string) {
 	token := os.Getenv("TG_TOKEN")
 	if token == "" {
 		return
 	}
 
 	apiURL := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", token)
-	data := url.Values{}
-	data.Set("chat_id", strconv.FormatInt(chatID, 10))
-	data.Set("text", text)
-	data.Set("parse_mode", "HTML")
+	data := fmt.Sprintf("chat_id=%d&text=%s&parse_mode=HTML", chatID, text)
 
-	resp, err := http.Post(apiURL, "application/x-www-form-urlencoded", strings.NewReader(data.Encode()))
+	resp, err := http.Post(apiURL, "application/x-www-form-urlencoded", strings.NewReader(data))
 	if err != nil {
-		log.Printf("❌ Ошибка отправки ответа: %v", err)
+		log.Printf("❌ Ошибка отправки: %v", err)
 		return
 	}
 	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		body, _ := io.ReadAll(resp.Body)
-		log.Printf("❌ Telegram API error: %s", body)
-	}
 }
