@@ -1,4 +1,3 @@
-// src/components/Gallery.jsx
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { useInView } from "framer-motion";

@@ -1,205 +1,117 @@
 // src/App.jsx
-import { motion, useAnimation } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
-
-// Компоненты
-import Gallery from "./components/Gallery";
-import Location from "./components/Location";
+import "./index.css";
+import GuestbookForm from "./components/GuestbookForm";
 
 export default function App() {
   const titleRef = useRef(null);
-  const isInView = useInView(titleRef, { once: true, threshold: 0.5 });
-  const controls = useAnimation();
-
-  const [activeSection, setActiveSection] = useState("");
+  const [wishes, setWishes] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Анимация главного экрана
-  useEffect(() => {
-    if (isInView) {
-      controls.start("visible");
-    }
-  }, [isInView, controls]);
+  const isInView = useInView(titleRef, { once: true, threshold: 0.5 });
 
-  // Отслеживаем, какой блок в зоне видимости
-  useEffect(() => {
-    const handleScroll = () => {
-      const gallery = document.getElementById("gallery");
-      const location = document.getElementById("location");
+  const API_URL = import.meta.env.VITE_API_URL;
 
-      const scrollPos = window.scrollY + 100;
-
-      if (location && scrollPos >= location.offsetTop) {
-        setActiveSection("location");
-      } else if (gallery && scrollPos >= gallery.offsetTop) {
-        setActiveSection("gallery");
-      } else {
-        setActiveSection("");
+  // Загружаем пожелания
+  const fetchWishes = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/wishes`);
+      if (res.ok) {
+        const data = await res.json();
+        setWishes(data);
       }
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    handleScroll();
-
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  // Плавная прокрутка к блоку
-  const scrollTo = (id) => {
-    const element = document.getElementById(id);
-    if (element) {
-      window.scrollTo({
-        top: element.offsetTop - 80, // Учитываем высоту навбара
-        behavior: "smooth",
-      });
+    } catch (err) {
+      console.error("Ошибка загрузки пожеланий:", err);
     }
   };
 
+  useEffect(() => {
+    fetchWishes(); // Первичная загрузка
+    const interval = setInterval(fetchWishes, 30000); 
+    setIsLoading(false);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Бегущая строка
+  const marqueeText = wishes
+    .slice(0, 10)
+    .map((w) => w.message)
+    .join(" • ");
+
   return (
-    <>
-      {/* 🔝 Фиксированный навбар */}
-      <nav style={styles.nav}>
-        <div style={styles.container}>
-          <button
-            onClick={() => scrollTo("gallery")}
-            style={{
-              ...styles.button,
-              ...(activeSection === "gallery" && styles.active),
-            }}
-          >
-            Галерея
-          </button>
-          <button
-            onClick={() => scrollTo("location")}
-            style={{
-              ...styles.button,
-              ...(activeSection === "location" && styles.active),
-            }}
-          >
-            Карта
-          </button>
+    <div style={styles.page}>
+      {/* 🔝 Главный экран */}
+      <main ref={titleRef} style={styles.hero}>
+        <h1 style={{ ...styles.title, opacity: isInView ? 1 : 0 }}>
+          Екатерина
+          <span style={styles.heart}> & </span>
+          Всеволод
+        </h1>
+
+        <p style={{ ...styles.date, opacity: isInView ? 1 : 0 }}>11.11.2025</p>
+
+        <div
+          style={{
+            ...styles.underline,
+            transform: isInView ? "scaleX(1)" : "scaleX(0)",
+          }}
+        />
+
+        <p style={{ ...styles.subtitle, opacity: isInView ? 1 : 0 }}>
+          Приглашаем вас разделить с нами этот особенный день
+        </p>
+
+        {/* 🌸 Бегущая строка — только пожелания */}
+        <div style={styles.marqueeContainer}>
+          <div style={styles.marquee}>
+            <p style={styles.marqueeText}>{marqueeText}</p>
+          </div>
         </div>
-      </nav>
-
-      {/* 🎉 Главная секция */}
-      <main style={styles.heroSection}>
-        <motion.div
-          ref={titleRef}
-          initial={{ opacity: 0, y: 30 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-          style={styles.heroContent}
-        >
-          <h1 style={styles.title}>
-            Екатерина
-            <span style={styles.heart}> & </span>
-            Всеволод
-          </h1>
-
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5, duration: 0.6 }}
-            style={styles.date}
-          >
-            11.11.2025
-          </motion.p>
-
-          {/* 🌸 Розовая полоска с анимацией */}
-          <motion.div
-            initial={{ scaleX: 0 }}
-            animate={{ scaleX: 1 }}
-            transition={{
-              delay: 0.8,
-              duration: 1,
-              ease: "easeOut",
-            }}
-            style={styles.underline}
-          />
-
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.2, duration: 0.6 }}
-            style={styles.subtitle}
-          >
-            Приглашаем вас разделить с нами этот особенный день
-          </motion.p>
-        </motion.div>
       </main>
 
-      {/* 🖼️ Галерея */}
-      <section id="gallery">
-        <Gallery />
-      </section>
-
-      {/* 📍 Карта */}
-      <section id="location">
-        <Location />
-      </section>
-    </>
+      {/* 📝 Гостевая книга */}
+      <GuestbookForm onNewWish={(newWish) => setWishes([newWish, ...wishes])} />
+    </div>
   );
 }
 
-// ✨ Стили
-const styles = {
-  // Навбар
-  nav: {
-    position: "fixed",
-    top: 0,
-    left: 0,
-    width: "100%",
-    background: "rgba(255, 255, 255, 0.85)",
-    backdropFilter: "blur(10px)",
-    // boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
-    zIndex: 1000,
-    padding: "10px 0",
-  },
-  container: {
-    maxWidth: "600px",
-    margin: "0 auto",
-    display: "flex",
-    justifyContent: "center",
-    gap: "30px",
-    fontFamily: "Poppins, sans-serif",
-  },
-  button: {
-    background: "none",
-    border: "none",
-    fontSize: "1rem",
-    color: "#555",
-    cursor: "pointer",
-    padding: "8px 12px",
-    borderRadius: "8px",
-    transition: "all 0.3s ease",
-  },
-  active: {
-    color: "var(--color-accent)",
-    background: "rgba(244, 194, 217, 0.2)",
-    fontWeight: "500",
-  },
+// Кастомный хук useInView
+const useInView = (ref, options) => {
+  const [isInView, setIsInView] = useState(false);
+  useEffect(() => {
+    const observer = new IntersectionObserver(([entry]) => {
+      setIsInView(entry.isIntersecting);
+    }, options);
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, [ref, options]);
+  return isInView;
+};
 
-  // Главная секция
-  heroSection: {
-    paddingTop: "80px",
+// Стили
+const styles = {
+  page: {
     minHeight: "100vh",
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "center",
-    alignItems: "center",
+    background: "linear-gradient(135deg, var(--color-primary), var(--color-secondary))",
+    fontFamily: "Poppins, sans-serif",
+    color: "#333",
+    overflow: "hidden",
+  },
+  hero: {
+    paddingTop: "80px",
     textAlign: "center",
     padding: "20px",
-    background: "linear-gradient(135deg, var(--color-primary), var(--color-secondary))",
-    position: "relative",
-    zIndex: 1,
-  },
-  heroContent: {
-    maxWidth: "500px",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
   },
   title: {
     fontSize: "2.8rem",
     fontWeight: "500",
-    color: "#333",
     margin: "0",
+    transition: "opacity 0.8s ease-out",
     lineHeight: "1.3",
   },
   heart: {
@@ -211,6 +123,7 @@ const styles = {
     color: "#555",
     margin: "15px 0 20px",
     fontWeight: "400",
+    transition: "opacity 0.6s ease-out",
   },
   underline: {
     height: "2px",
@@ -219,6 +132,7 @@ const styles = {
     margin: "0 auto",
     borderRadius: "2px",
     transformOrigin: "center",
+    transition: "transform 1s ease-out 0.8s",
   },
   subtitle: {
     fontSize: "1.1rem",
@@ -226,27 +140,29 @@ const styles = {
     maxWidth: "350px",
     margin: "20px auto 0",
     fontStyle: "italic",
+    transition: "opacity 0.6s ease-out 1.2s",
   },
-};
-
-// 🧩 Кастомный хук useInView
-const useInView = (ref, options) => {
-  const [isInView, setIsInView] = useState(false);
-  const [hasBeenViewed, setHasBeenViewed] = useState(false);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) {
-        setIsInView(true);
-        if (!hasBeenViewed) setHasBeenViewed(true);
-      } else {
-        setIsInView(false);
-      }
-    }, options);
-
-    if (ref.current) observer.observe(ref.current);
-    return () => observer.disconnect();
-  }, [ref, options, hasBeenViewed]);
-
-  return isInView;
+  marqueeContainer: {
+    width: "100%",
+    overflow: "hidden",
+    whiteSpace: "nowrap",
+    padding: "10px 0",
+    marginTop: "20px",
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    borderRadius: "12px",
+    boxShadow: "0 4px 10px rgba(0,0,0,0.05)",
+  },
+  marquee: {
+    display: "inline-block",
+    animation: "marquee 30s linear infinite",
+    whiteSpace: "nowrap",
+  },
+  marqueeText: {
+    fontSize: "1rem",
+    color: "#555",
+    margin: "0",
+    padding: "0 20px",
+    fontWeight: "400",
+    letterSpacing: "0.5px",
+  },
 };

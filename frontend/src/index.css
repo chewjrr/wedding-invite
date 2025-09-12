@@ -1,4 +1,4 @@
-/* src/index.css */
+
 :root {
   --color-primary: #f9e7eb;   /* нежно-розовый */
   --color-secondary: #e6f4f1; /* нежно-бирюзовый */
@@ -23,7 +23,6 @@ body {
   overflow-x: hidden;
 }
 
-/* Скроллбар (опционально, для красоты) */
 ::-webkit-scrollbar {
   width: 6px;
 }
@@ -33,4 +32,13 @@ body {
 ::-webkit-scrollbar-thumb {
   background: var(--color-accent);
   border-radius: 10px;
+}
+
+@keyframes marquee {
+  0% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
 }
