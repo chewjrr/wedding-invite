@@ -1,3 +1,4 @@
+// backend/main.go
 package main
 
 import (
@@ -36,7 +37,7 @@ func loadEnv() {
 		key := strings.TrimSpace(parts[0])
 		value := strings.TrimSpace(parts[1])
 
-		// Устанавливаем только если переменная ещё не задана (чтобы не перезаписать env на Render)
+		// Устанавливаем только если переменная ещё не задана (например, на Render)
 		if os.Getenv(key) == "" {
 			os.Setenv(key, value)
 		}
@@ -56,12 +57,15 @@ func getPort() string {
 // withCORS добавляет заголовки CORS
 func withCORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Разрешаем запросы с фронтенда
 		w.Header().Set("Access-Control-Allow-Origin", "https://wedding-frontend-zt57.onrender.com")
+		// Можно временно разрешить всё (для теста): w.Header().Set("Access-Control-Allow-Origin", "*")
+
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 		w.Header().Set("Access-Control-Allow-Credentials", "true")
 
-		// Для preflight-запросов
+		// Обработка preflight-запросов
 		if r.Method == "OPTIONS" {
 			w.WriteHeader(http.StatusOK)
 			return
@@ -72,7 +76,7 @@ func withCORS(next http.Handler) http.Handler {
 }
 
 func main() {
-	// Загружаем .env только для локальной разработки
+	// Загружаем .env только если он есть (локальная разработка)
 	loadEnv()
 
 	// Проверяем, задан ли DATABASE_URL
@@ -85,7 +89,7 @@ func main() {
 	database.Connect()
 	defer database.Close()
 
-	// Создаём таблицу при старте
+	// Создаём таблицу, если не существует
 	database.Migrate()
 
 	// Настройка маршрутов
@@ -94,32 +98,15 @@ func main() {
 	mux.HandleFunc("/api/wish", handlers.AddWish)
 	mux.HandleFunc("/telegram", handlers.HandleWebhook)
 
-	// Добавляем CORS
+	// Добавляем CORS ко всем маршрутам
 	handler := withCORS(mux)
 
-	// Определяем порт
+	// Получаем порт
 	port := getPort()
 
 	// Логируем старт сервера
 	log.Printf("🚀 Сервер запущен на :%s", port)
-	log.Printf("🔗 DATABASE_URL: %s", redactDBURL(dbURL)) // маскируем пароль в логах
 
-	// Запуск HTTP-сервера
-	if err := http.ListenAndServe(":"+port, handler); err != nil {
-		log.Fatalf("❌ Ошибка запуска сервера: %v", err)
-	}
-}
-
-// redactDBURL скрывает пароль в строке подключения для безопасности в логах
-func redactDBURL(url string) string {
-	start := strings.Index(url, "://")
-	if start == -1 {
-		return url
-	}
-	at := strings.Index(url[start:], "@")
-	if at == -1 {
-		return url
-	}
-	end := start + at
-	return url[:end] + "@***:***@" + url[strings.Index(url[end:], "@")+end+1:]
+	// Запуск сервера
+	log.Fatal(http.ListenAndServe(":"+port, handler))
 }
