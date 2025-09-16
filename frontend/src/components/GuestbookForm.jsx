@@ -1,28 +1,40 @@
+// src/components/GuestbookForm.jsx
 import { useState } from "react";
+import Toast from "./Toast"; // Убедись, что компонент Toast создан
 
 export default function GuestbookForm({ onNewWish }) {
   const [name, setName] = useState("");
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [toast, setToast] = useState(null);
 
-  // Получаем URL из .env (через Vite)
+  // Получаем URL бэкенда из .env
   const API_URL = import.meta.env.VITE_API_URL;
 
+  // Закрытие тоста
+  const closeToast = () => setToast(null);
+
+  // Обработчик отправки формы
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Валидация полей
     if (!name.trim() || !message.trim()) return;
 
-    // Защита от ошибки - проверяем, что onNewWish является функцией
+    // Проверяем, что onNewWish — это функция
     if (typeof onNewWish !== "function") {
       console.error("❌ onNewWish не является функцией", onNewWish);
-      alert("Ошибка в приложении. Пожалуйста, перезагрузите страницу.");
+      setToast({
+        message: "Ошибка приложения. Перезагрузите страницу.",
+        type: "error",
+      });
       return;
     }
 
     setIsSubmitting(true);
+    setToast({ message: "Отправляется...", type: "info" });
 
     const newWish = { name: name.trim(), message: message.trim() };
-
     console.log("📤 Отправка пожелания:", newWish);
 
     try {
@@ -36,87 +48,96 @@ export default function GuestbookForm({ onNewWish }) {
 
       console.log("📡 Статус ответа:", res.status, res.statusText);
 
-      // Если сервер вернул 201 — всё ок
       if (res.status === 201) {
+        // Успешно добавлено
         const savedWish = await res.json();
         console.log("✅ Успешно сохранено в базу:", savedWish);
-        
-        // Преобразуем поле created_at в createdAt для совместимости
+
+        // Приводим к единому формату (camelCase)
         const formattedWish = {
           id: savedWish.id,
           name: savedWish.name,
           message: savedWish.message,
-          createdAt: savedWish.created_at || savedWish.createdAt
+          createdAt: savedWish.created_at || savedWish.createdAt,
         };
-        
+
         onNewWish(formattedWish);
         setName("");
         setMessage("");
-        alert("Спасибо за тёплое слово! 💕");
+        setToast({ message: "Пожелание отправлено! 💕", type: "success" });
       } else {
-        // Сервер вернул ошибку
+        // Ошибка от сервера
+        let errorData;
+        const clonedRes = res.clone(); // Клонируем для безопасного чтения
+
         try {
-          const errorData = await res.json();
-          console.error("❌ Ошибка от сервера:", res.status, errorData.error);
-          alert(`Ошибка: ${errorData.error}`);
-        } catch (parseError) {
-          const errorText = await res.text();
-          console.error("❌ Ошибка от сервера:", res.status, errorText);
-          alert(`Ошибка ${res.status}: ${errorText}`);
+          errorData = await res.json();
+        } catch (jsonError) {
+          try {
+            const text = await clonedRes.text();
+            errorData = { error: text || "Неизвестная ошибка" };
+          } catch (textError) {
+            errorData = { error: "Не удалось прочитать ответ сервера" };
+          }
         }
+
+        const errorMsg = errorData.error || "Ошибка на сервере";
+        console.error("❌ Ошибка от сервера:", res.status, errorMsg);
+        setToast({ message: `Ошибка: ${errorMsg}`, type: "error" });
       }
     } catch (err) {
       console.error("🔴 Ошибка сети/запроса:", err);
-      // Даже если ошибка — возможно, сервер получил данные
-      const confirm = window.confirm(
-        "Пожелание могло быть отправлено, но произошла ошибка.\n" +
-        "Хотите считать, что оно доставлено? (для отображения в интерфейсе)"
-      );
-      if (confirm) {
-        const optimisticWish = {
-          ...newWish,
-          id: Date.now(),
-          createdAt: new Date().toISOString(),
-        };
-        onNewWish(optimisticWish);
-        setName("");
-        setMessage("");
-        alert("Пожелание добавлено в список (возможно, уже в базе).");
-      }
+      setToast({
+        message: "Не удалось подключиться к серверу.",
+        type: "error",
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <section style={formStyles.section}>
-      <h2 style={formStyles.heading}>Оставить пожелание</h2>
-      <form onSubmit={handleSubmit} style={formStyles.form}>
-        <input
-          type="text"
-          placeholder="Ваше имя"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          style={formStyles.input}
-          name="name"
-          disabled={isSubmitting}
+    <>
+      {/* 📝 Форма пожеланий */}
+      <section style={formStyles.section}>
+        <h2 style={formStyles.heading}>Оставить пожелание</h2>
+        <form onSubmit={handleSubmit} style={formStyles.form}>
+          <input
+            type="text"
+            placeholder="Ваше имя"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            style={formStyles.input}
+            name="name"
+            disabled={isSubmitting}
+          />
+          <textarea
+            placeholder="Ваше тёплое пожелание"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            style={formStyles.textarea}
+            name="message"
+            disabled={isSubmitting}
+          />
+          <button type="submit" style={formStyles.button} disabled={isSubmitting}>
+            {isSubmitting ? "Отправляется..." : "Отправить"}
+          </button>
+        </form>
+      </section>
+
+      {/* 🎉 Всплывающее уведомление */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={closeToast}
         />
-        <textarea
-          placeholder="Ваше тёплое пожелание"
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          style={formStyles.textarea}
-          name="message"
-          disabled={isSubmitting}
-        />
-        <button type="submit" style={formStyles.button} disabled={isSubmitting}>
-          {isSubmitting ? "Отправляется..." : "Отправить"}
-        </button>
-      </form>
-    </section>
+      )}
+    </>
   );
 }
 
+// Стили формы
 const formStyles = {
   section: {
     padding: "60px 20px",
