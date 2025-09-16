@@ -153,7 +153,7 @@ export default function App() {
 
       {/* 📝 Гостевая книга — под картой */}
       <section id="guestbook">
-        <GuestbookForm onNewWish={(newWish) => setWishes([newWish, ...wishes])} />
+        <GuestbookForm onNewWish={handleNewWish} />
       </section>
     </>
   );
