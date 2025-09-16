@@ -11,7 +11,7 @@ export default function App() {
   const titleRef = useRef(null);
   const isInView = useInView(titleRef, { once: true, threshold: 0.5 });
   const controls = useAnimation();
-
+  const [wishes, setWishes] = useState([]);
   const [activeSection, setActiveSection] = useState("");
 
   // Анимация главного экрана
@@ -20,6 +20,10 @@ export default function App() {
       controls.start("visible");
     }
   }, [isInView, controls]);
+
+  const handleNewWish = (newWish) => {
+    setWishes(prevWishes => [newWish, ...prevWishes]);
+  };
 
   // Отслеживаем, какой блок в зоне видимости
   useEffect(() => {
