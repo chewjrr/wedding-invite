@@ -114,7 +114,7 @@ export default function GuestbookForm({ onNewWish }) {
         </form>
       </section>
 
-      {/* Только Toast — никаких alert */}
+      
       {toast && (
         <Toast
           message={toast.message}
@@ -128,7 +128,7 @@ export default function GuestbookForm({ onNewWish }) {
 
 const formStyles = {
   section: {
-    padding: "60px 20px",
+    padding: "100px 20px",
     textAlign: "center",
     background: "var(--color-bg)",
   },
@@ -160,7 +160,7 @@ const formStyles = {
   },
   button: {
     padding: "12px",
-    backgroundColor: "var(--color-accent)",
+    backgroundColor: "#f469baff",
     color: "#fff",
     border: "none",
     borderRadius: "8px",

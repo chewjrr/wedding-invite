@@ -1,11 +1,35 @@
 // src/components/Toast.jsx
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 export default function Toast({ message, type, onClose }) {
+  const toastRef = useRef(null);
+
+  // Анимация появления
   useEffect(() => {
-    const timer = setTimeout(onClose, 3000); // Авто-закрытие через 3 сек
+    const element = toastRef.current;
+    if (element) {
+      // Запускаем анимацию после рендера
+      requestAnimationFrame(() => {
+        element.style.opacity = "1";
+        element.style.transform = "translateX(0)";
+      });
+    }
+
+    // Авто-закрытие
+    const timer = setTimeout(onClose, 3000);
     return () => clearTimeout(timer);
   }, [onClose]);
+
+  // Анимация исчезновения при закрытии
+  const handleClose = () => {
+    const element = toastRef.current;
+    if (element) {
+      element.style.opacity = "0";
+      element.style.transform = "translateX(100%)";
+      // Убираем из DOM после анимации
+      setTimeout(onClose, 300); // Должно совпадать с duration в CSS
+    }
+  };
 
   const styles = {
     base: {
@@ -19,11 +43,11 @@ export default function Toast({ message, type, onClose }) {
       fontWeight: "500",
       color: "#fff",
       boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-      zIndex: 1001,
+      zIndex: 1000,
       cursor: "pointer",
-      opacity: 1,
-      transform: "translateX(0)",
-      transition: "all 0.3s ease",
+      opacity: "0", // Начальное состояние
+      transform: "translateX(100%)", // Начинается справа
+      transition: "opacity 0.3s ease, transform 0.3s ease",
     },
     success: {
       background: "linear-gradient(135deg, #4ade80, #22c55e)",
@@ -38,8 +62,9 @@ export default function Toast({ message, type, onClose }) {
 
   return (
     <div
+      ref={toastRef}
       style={{ ...styles.base, ...(styles[type] || styles.info) }}
-      onClick={onClose}
+      onClick={handleClose}
     >
       {message}
     </div>
