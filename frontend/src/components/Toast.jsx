@@ -1,8 +1,10 @@
 // src/components/Toast.jsx
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export default function Toast({ message, type, onClose }) {
   const toastRef = useRef(null);
+  const [isVisible, setIsVisible] = useState(false);
+  const [currentStyle, setCurrentStyle] = useState({});
 
   // Цвета в пастельной гамме
   const colors = {
@@ -20,56 +22,98 @@ export default function Toast({ message, type, onClose }) {
     },
   };
 
-  const style = colors[type] || colors.info;
+  const baseStyle = {
+    position: "fixed",
+    top: "20px",
+    right: "20px",
+    maxWidth: "300px",
+    padding: "14px 18px",
+    borderRadius: "12px",
+    fontSize: "0.95rem",
+    fontWeight: "500",
+    zIndex: 1000,
+    cursor: "pointer",
+    backdropFilter: "blur(4px)",
+    transition: "all 0.5s cubic-bezier(0.33, 1, 0.68, 1)",
+    opacity: "0",
+    transform: "translateY(-20px) scale(0.95)",
+    border: "1px solid transparent",
+  };
 
   useEffect(() => {
-    const element = toastRef.current;
-    if (element) {
-      // Плавное появление
-      requestAnimationFrame(() => {
-        element.style.opacity = "1";
-        element.style.transform = "translateY(0)";
-      });
-    }
+    // Устанавливаем стиль в зависимости от типа
+    const style = colors[type] || colors.info;
+    setCurrentStyle({
+      ...baseStyle,
+      color: style.text,
+      background: style.bg,
+      borderColor: `${style.text}20`,
+    });
+
+    // Запускаем анимацию появления
+    setTimeout(() => {
+      setIsVisible(true);
+      if (toastRef.current) {
+        setCurrentStyle(prev => ({
+          ...prev,
+          opacity: "1",
+          transform: "translateY(0) scale(1)",
+        }));
+      }
+    }, 10);
 
     // Авто-закрытие
-    const timer = setTimeout(onClose, 3000);
+    const timer = setTimeout(() => {
+      handleClose();
+    }, 3000);
+    
     return () => clearTimeout(timer);
-  }, [onClose]);
+  }, [type]);
 
   const handleClose = () => {
-    const element = toastRef.current;
-    if (element) {
-      element.style.opacity = "0";
-      element.style.transform = "translateY(-10px)";
-      setTimeout(onClose, 300);
+    setIsVisible(false);
+    if (toastRef.current) {
+      setCurrentStyle(prev => ({
+        ...prev,
+        opacity: "0",
+        transform: "translateY(-20px) scale(0.95)",
+      }));
+      
+      // Ждем завершения анимации перед вызовом onClose
+      setTimeout(onClose, 500);
+    }
+  };
+
+  const handleMouseEnter = () => {
+    if (toastRef.current && isVisible) {
+      const style = colors[type] || colors.info;
+      setCurrentStyle(prev => ({
+        ...prev,
+        transform: "translateY(0) scale(1.05)",
+        //boxShadow: "0 8px 25px rgba(0, 0, 0, 0.15)",
+        borderColor: `${style.text}40`,
+      }));
+    }
+  };
+
+  const handleMouseLeave = () => {
+    if (toastRef.current && isVisible) {
+      setCurrentStyle(prev => ({
+        ...prev,
+        transform: "translateY(0) scale(1)",
+        //boxShadow: "0 6px 16px rgba(0, 0, 0, 0.1)",
+        borderColor: `${colors[type]?.text || colors.info.text}20`,
+      }));
     }
   };
 
   return (
     <div
       ref={toastRef}
-      style={{
-        position: "fixed",
-        top: "20px",
-        right: "20px",
-        maxWidth: "300px",
-        padding: "14px 18px",
-        borderRadius: "12px",
-        fontSize: "0.95rem",
-        fontWeight: "500",
-        color: style.text,
-        background: style.bg,
-        //boxShadow: "0 6px 16px rgba(0, 0, 0, 0.1)",
-        zIndex: 1000,
-        cursor: "pointer",
-        opacity: "0",
-        transform: "translateY(-10px)",
-        transition: "all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1)",
-        border: `1px solid ${style.text}20`,
-        backdropFilter: "blur(4px)",
-      }}
+      style={currentStyle}
       onClick={handleClose}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       {message}
     </div>
