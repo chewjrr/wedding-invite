@@ -14,9 +14,6 @@ export default function App() {
   const [wishes, setWishes] = useState([]);
   const [activeSection, setActiveSection] = useState("");
 
-  // Загружаем URL из .env
-  const API_URL = import.meta.env.VITE_API_URL;
-
   // Анимация главного экрана
   useEffect(() => {
     if (isInView) {
@@ -28,31 +25,12 @@ export default function App() {
     setWishes(prevWishes => [newWish, ...prevWishes]);
   };
 
-  // Загрузка пожеланий при старте и обновление каждые 30 сек
-  useEffect(() => {
-    const fetchWishes = async () => {
-      try {
-        const res = await fetch(`${API_URL}/api/wishes`);
-        if (res.ok) {
-          const data = await res.json();
-          setWishes(data);
-        }
-      } catch (err) {
-        console.error("Ошибка загрузки пожеланий:", err);
-      }
-    };
-
-    fetchWishes();
-    const interval = setInterval(fetchWishes, 30000); // Каждые 30 сек
-    return () => clearInterval(interval);
-  }, []);
-
-  // Отслеживаем активную секцию
+  // Отслеживаем, какой блок в зоне видимости
   useEffect(() => {
     const handleScroll = () => {
       const gallery = document.getElementById("gallery");
       const location = document.getElementById("location");
-      const guestbook = document.getElementById("guestbook");
+      const guestbook = document.getElementById("guestbook"); // ✅ Добавлено
 
       const scrollPos = window.scrollY + 100;
 
@@ -69,6 +47,7 @@ export default function App() {
 
     window.addEventListener("scroll", handleScroll);
     handleScroll();
+
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
@@ -77,14 +56,11 @@ export default function App() {
     const element = document.getElementById(id);
     if (element) {
       window.scrollTo({
-        top: element.offsetTop - 80,
+        top: element.offsetTop - 80, // Учитываем высоту навбара
         behavior: "smooth",
       });
     }
   };
-
-  // Бегущая строка: только пожелания
-  const marqueeText = "... " + wishes.map(w => w.message).join(" /t ") + " /t ...";
 
   return (
     <>
@@ -109,6 +85,7 @@ export default function App() {
           >
             Карта
           </button>
+          {/* ✅ Новый пункт в навбаре */}
           <button
             onClick={() => scrollTo("guestbook")}
             style={{
@@ -165,13 +142,6 @@ export default function App() {
           >
             Приглашаем вас разделить с нами этот особенный день
           </motion.p>
-
-          {/* 🌟 Бегущая строка с пожеланиями */}
-          <div style={marqueeStyles.container}>
-            <div style={marqueeStyles.marquee}>
-              <p style={marqueeStyles.text}>{marqueeText}</p>
-            </div>
-          </div>
         </motion.div>
       </main>
 
@@ -193,8 +163,9 @@ export default function App() {
   );
 }
 
-// ✨ Стили основных блоков
+// ✨ Стили
 const styles = {
+  // Навбар
   nav: {
     position: "fixed",
     top: 0,
@@ -228,6 +199,8 @@ const styles = {
     background: "rgba(244, 194, 217, 0.2)",
     fontWeight: "500",
   },
+
+  // Главная секция
   heroSection: {
     paddingTop: "80px",
     minHeight: "100vh",
@@ -275,33 +248,6 @@ const styles = {
     maxWidth: "350px",
     margin: "20px auto 0",
     fontStyle: "italic",
-  },
-};
-
-// 🌸 Стили бегущей строки
-const marqueeStyles = {
-  container: {
-    width: "100%",
-    overflow: "hidden",
-    whiteSpace: "nowrap",
-    marginTop: "20px",
-    padding: "8px 0",
-    backgroundColor: "rgba(255, 255, 255, 0.15)",
-    borderRadius: "10px",
-    boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-  },
-  marquee: {
-    display: "inline-block",
-    animation: "marquee 40s linear infinite",
-    whiteSpace: "nowrap",
-  },
-  text: {
-    fontSize: "1rem",
-    color: "#555",
-    margin: "0",
-    padding: "0 20px",
-    fontWeight: "400",
-    letterSpacing: "0.3px",
   },
 };
 
