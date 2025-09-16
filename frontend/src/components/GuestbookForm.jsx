@@ -1,6 +1,6 @@
 // src/components/GuestbookForm.jsx
 import { useState } from "react";
-import Toast from "./Toast"; // Убедись, что компонент Toast создан
+import Toast from "./Toast"; // Кастомное уведомление
 
 export default function GuestbookForm({ onNewWish }) {
   const [name, setName] = useState("");
@@ -8,22 +8,17 @@ export default function GuestbookForm({ onNewWish }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toast, setToast] = useState(null);
 
-  // Получаем URL бэкенда из .env
   const API_URL = import.meta.env.VITE_API_URL;
 
-  // Закрытие тоста
   const closeToast = () => setToast(null);
 
-  // Обработчик отправки формы
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Валидация полей
     if (!name.trim() || !message.trim()) return;
 
-    // Проверяем, что onNewWish — это функция
     if (typeof onNewWish !== "function") {
-      console.error("❌ onNewWish не является функцией", onNewWish);
+      console.error("❌ onNewWish is not a function", onNewWish);
       setToast({
         message: "Ошибка приложения. Перезагрузите страницу.",
         type: "error",
@@ -40,20 +35,16 @@ export default function GuestbookForm({ onNewWish }) {
     try {
       const res = await fetch(`${API_URL}/api/wish`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newWish),
       });
 
       console.log("📡 Статус ответа:", res.status, res.statusText);
 
       if (res.status === 201) {
-        // Успешно добавлено
         const savedWish = await res.json();
         console.log("✅ Успешно сохранено в базу:", savedWish);
 
-        // Приводим к единому формату (camelCase)
         const formattedWish = {
           id: savedWish.id,
           name: savedWish.name,
@@ -66,17 +57,16 @@ export default function GuestbookForm({ onNewWish }) {
         setMessage("");
         setToast({ message: "Пожелание отправлено! 💕", type: "success" });
       } else {
-        // Ошибка от сервера
         let errorData;
-        const clonedRes = res.clone(); // Клонируем для безопасного чтения
+        const clonedRes = res.clone();
 
         try {
           errorData = await res.json();
-        } catch (jsonError) {
+        } catch (e) {
           try {
             const text = await clonedRes.text();
             errorData = { error: text || "Неизвестная ошибка" };
-          } catch (textError) {
+          } catch {
             errorData = { error: "Не удалось прочитать ответ сервера" };
           }
         }
@@ -98,7 +88,6 @@ export default function GuestbookForm({ onNewWish }) {
 
   return (
     <>
-      {/* 📝 Форма пожеланий */}
       <section style={formStyles.section}>
         <h2 style={formStyles.heading}>Оставить пожелание</h2>
         <form onSubmit={handleSubmit} style={formStyles.form}>
@@ -125,7 +114,7 @@ export default function GuestbookForm({ onNewWish }) {
         </form>
       </section>
 
-      {/* 🎉 Всплывающее уведомление */}
+      {/* Только Toast — никаких alert */}
       {toast && (
         <Toast
           message={toast.message}
@@ -137,7 +126,6 @@ export default function GuestbookForm({ onNewWish }) {
   );
 }
 
-// Стили формы
 const formStyles = {
   section: {
     padding: "60px 20px",
