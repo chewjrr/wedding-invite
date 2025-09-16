@@ -19,7 +19,7 @@ export default function Toast({ message, type, onClose }) {
       fontWeight: "500",
       color: "#fff",
       boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-      zIndex: 1000,
+      zIndex: 1001,
       cursor: "pointer",
       opacity: 1,
       transform: "translateX(0)",
