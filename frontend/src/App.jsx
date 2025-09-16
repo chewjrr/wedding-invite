@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 // Компоненты
 import Gallery from "./components/Gallery";
 import Location from "./components/Location";
-import GuestbookForm from "./components/GuestbookForm";
+import GuestbookForm from "./components/GuestbookForm"; // ✅ Подключаем форму
 
 export default function App() {
   const titleRef = useRef(null);
@@ -13,29 +13,6 @@ export default function App() {
   const controls = useAnimation();
   const [wishes, setWishes] = useState([]);
   const [activeSection, setActiveSection] = useState("");
-  const [marqueeWishes, setMarqueeWishes] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const API_URL = import.meta.env.VITE_API_URL;
-
-  // Загрузка пожеланий для бегущей строки
-  useEffect(() => {
-    const fetchWishes = async () => {
-      try {
-        const response = await fetch(`${API_URL}/api/wishes`);
-        if (response.ok) {
-          const wishesData = await response.json();
-          setMarqueeWishes(wishesData);
-        }
-      } catch (error) {
-        console.error("Ошибка при загрузке пожеланий:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchWishes();
-  }, [API_URL]);
 
   // Анимация главного экрана
   useEffect(() => {
@@ -46,7 +23,6 @@ export default function App() {
 
   const handleNewWish = (newWish) => {
     setWishes(prevWishes => [newWish, ...prevWishes]);
-    setMarqueeWishes(prev => [newWish, ...prev]);
   };
 
   // Отслеживаем, какой блок в зоне видимости
@@ -54,7 +30,7 @@ export default function App() {
     const handleScroll = () => {
       const gallery = document.getElementById("gallery");
       const location = document.getElementById("location");
-      const guestbook = document.getElementById("guestbook");
+      const guestbook = document.getElementById("guestbook"); // ✅ Добавлено
 
       const scrollPos = window.scrollY + 100;
 
@@ -80,7 +56,7 @@ export default function App() {
     const element = document.getElementById(id);
     if (element) {
       window.scrollTo({
-        top: element.offsetTop - 80,
+        top: element.offsetTop - 80, // Учитываем высоту навбара
         behavior: "smooth",
       });
     }
@@ -109,6 +85,7 @@ export default function App() {
           >
             Карта
           </button>
+          {/* ✅ Новый пункт в навбаре */}
           <button
             onClick={() => scrollTo("guestbook")}
             style={{
@@ -165,32 +142,6 @@ export default function App() {
           >
             Приглашаем вас разделить с нами этот особенный день
           </motion.p>
-
-          {/* 🎠 Бегущая строка с пожеланиями */}
-          {!isLoading && marqueeWishes.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.5, duration: 0.6 }}
-              style={styles.marqueeContainer}
-            >
-              <div style={styles.marqueeWrapper}>
-                <div style={styles.marqueeContent}>
-                  {marqueeWishes.map((wish, index) => (
-                    <span key={index} style={styles.marqueeItem}>
-                      | {wish.message} |
-                    </span>
-                  ))}
-                  {/* Дублируем для бесшовной анимации */}
-                  {marqueeWishes.map((wish, index) => (
-                    <span key={`duplicate-${index}`} style={styles.marqueeItem}>
-                      | {wish.message} |
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </motion.div>
-          )}
         </motion.div>
       </main>
 
@@ -208,16 +159,6 @@ export default function App() {
       <section id="guestbook">
         <GuestbookForm onNewWish={handleNewWish} />
       </section>
-
-      {/* Добавляем стили для анимации бегущей строки */}
-      <style>
-        {`
-          @keyframes marquee {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(-50%); }
-          }
-        `}
-      </style>
     </>
   );
 }
@@ -307,30 +248,6 @@ const styles = {
     maxWidth: "350px",
     margin: "20px auto 0",
     fontStyle: "italic",
-  },
-  
-  // Бегущая строка
-  marqueeContainer: {
-    marginTop: "30px",
-    width: "100%",
-    overflow: "hidden",
-    position: "relative",
-  },
-  marqueeWrapper: {
-    display: "flex",
-    width: "max-content",
-  },
-  marqueeContent: {
-    display: "flex",
-    animation: "marquee 30s linear infinite",
-    whiteSpace: "nowrap",
-  },
-  marqueeItem: {
-    margin: "0 15px",
-    fontSize: "1rem",
-    color: "#666",
-    fontStyle: "italic",
-    whiteSpace: "nowrap",
   },
 };
 
