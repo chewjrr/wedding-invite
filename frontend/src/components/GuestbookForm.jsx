@@ -1,4 +1,3 @@
-// src/components/GuestbookForm.jsx
 import { useState } from "react";
 
 export default function GuestbookForm({ onNewWish }) {
@@ -31,30 +30,24 @@ export default function GuestbookForm({ onNewWish }) {
       console.log("📡 Статус ответа:", res.status, res.statusText);
 
       // Если сервер вернул 201 — всё ок
-      if (res.ok) {
-        let savedWish;
-        try {
-          savedWish = await res.json(); // Пытаемся распарсить JSON
-          console.log("✅ Успешно сохранено в базу:", savedWish);
-        } catch (parseError) {
-          console.warn("⚠️ Не удалось распарсить JSON. Возможно, проблема с CORS", parseError);
-          // Если JSON не пришёл (из-за CORS), используем локальные данные
-          savedWish = { ...newWish, id: Date.now(), createdAt: new Date().toISOString() };
-        }
-
-        // Добавляем в список на фронтенде
+      if (res.status === 201) {
+        const savedWish = await res.json();
+        console.log("✅ Успешно сохранено в базу:", savedWish);
         onNewWish(savedWish);
-
-        // Очищаем форму
         setName("");
         setMessage("");
-
         alert("Спасибо за тёплое слово! 💕");
       } else {
         // Сервер вернул ошибку
-        const errorText = await res.text();
-        console.error("❌ Ошибка от сервера:", res.status, errorText);
-        alert(`Ошибка ${res.status}: ${errorText}`);
+        try {
+          const errorData = await res.json();
+          console.error("❌ Ошибка от сервера:", res.status, errorData.error);
+          alert(`Ошибка: ${errorData.error}`);
+        } catch (parseError) {
+          const errorText = await res.text();
+          console.error("❌ Ошибка от сервера:", res.status, errorText);
+          alert(`Ошибка ${res.status}: ${errorText}`);
+        }
       }
     } catch (err) {
       console.error("🔴 Ошибка сети/запроса:", err);

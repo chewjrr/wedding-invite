@@ -1,4 +1,3 @@
-// internal/handlers/wishes.go
 package handlers
 
 import (
@@ -18,16 +17,24 @@ import (
 // Регулярное выражение для удаления HTML-тегов
 var tagRegex = regexp.MustCompile(`<[^>]+>`)
 
+// errorResponse отправляет ошибку с CORS-заголовками
+func errorResponse(w http.ResponseWriter, message string, statusCode int) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "https://wedding-frontend-zt57.onrender.com")
+	w.WriteHeader(statusCode)
+	json.NewEncoder(w).Encode(map[string]string{"error": message})
+}
+
 // GET /api/wishes — получить все пожелания
 func GetWishes(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		errorResponse(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	rows, err := database.DB.Query("SELECT id, name, message, created_at FROM wishes ORDER BY created_at DESC")
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		errorResponse(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	defer rows.Close()
@@ -36,7 +43,7 @@ func GetWishes(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var wish models.Wish
 		if err := rows.Scan(&wish.ID, &wish.Name, &wish.Message, &wish.CreatedAt); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			errorResponse(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
@@ -53,14 +60,17 @@ func GetWishes(w http.ResponseWriter, r *http.Request) {
 
 // POST /api/wish — добавить пожелание
 func AddWish(w http.ResponseWriter, r *http.Request) {
+	log.Printf("AddWish: received %s request from %s", r.Method, r.RemoteAddr)
+	log.Printf("Headers: %+v", r.Header)
+
 	if r.Method != "POST" {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		errorResponse(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	var wish models.Wish
 	if err := json.NewDecoder(r.Body).Decode(&wish); err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		errorResponse(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
@@ -72,11 +82,11 @@ func AddWish(w http.ResponseWriter, r *http.Request) {
 	wish.Message = strings.TrimSpace(wish.Message)
 
 	if len(wish.Name) == 0 || len(wish.Name) > 100 {
-		http.Error(w, "Имя должно быть от 1 до 100 символов", http.StatusBadRequest)
+		errorResponse(w, "Имя должно быть от 1 до 100 символов", http.StatusBadRequest)
 		return
 	}
 	if len(wish.Message) == 0 || len(wish.Message) > 500 {
-		http.Error(w, "Пожелание должно быть от 1 до 500 символов", http.StatusBadRequest)
+		errorResponse(w, "Пожелание должно быть от 1 до 500 символов", http.StatusBadRequest)
 		return
 	}
 
@@ -88,7 +98,7 @@ func AddWish(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		log.Printf("Database error: %v", err)
-		http.Error(w, "Ошибка базы данных", http.StatusInternalServerError)
+		errorResponse(w, "Ошибка базы данных", http.StatusInternalServerError)
 		return
 	}
 

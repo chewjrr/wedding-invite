@@ -1,4 +1,3 @@
-// backend/main.go
 package main
 
 import (
@@ -58,9 +57,15 @@ func getPort() string {
 func withCORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Разрешаем запросы с фронтенда
-		w.Header().Set("Access-Control-Allow-Origin", "https://wedding-frontend-zt57.onrender.com")
-		// Можно временно разрешить всё (для теста): w.Header().Set("Access-Control-Allow-Origin", "*")
+		origin := r.Header.Get("Origin")
+		allowedOrigin := "https://wedding-frontend-zt57.onrender.com"
 
+		// Для тестирования можно разрешить localhost
+		if origin == "http://localhost:3000" {
+			allowedOrigin = origin
+		}
+
+		w.Header().Set("Access-Control-Allow-Origin", allowedOrigin)
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 		w.Header().Set("Access-Control-Allow-Credentials", "true")
