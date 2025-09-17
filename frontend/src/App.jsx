@@ -1,11 +1,13 @@
-// src/App.jsx
 import { motion, useAnimation } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 
 // Компоненты
 import Gallery from "./components/Gallery";
 import Location from "./components/Location";
-import GuestbookForm from "./components/GuestbookForm"; // ✅ Подключаем форму
+import GuestbookForm from "./components/GuestbookForm";
+
+// Константы
+const API_URL = process.env.REACT_APP_API_URL || "";
 
 export default function App() {
   const titleRef = useRef(null);
@@ -13,6 +15,28 @@ export default function App() {
   const controls = useAnimation();
   const [wishes, setWishes] = useState([]);
   const [activeSection, setActiveSection] = useState("");
+  const [tickerWishes, setTickerWishes] = useState("");
+
+  // Загрузка пожеланий для бегущей строки
+  useEffect(() => {
+    const fetchWishes = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/wishes`);
+        const wishesData = await res.json();
+        
+        // Форматируем пожелания в нужный формат
+        const formattedWishes = wishesData
+          .map(wish => `\t|\t${wish.message}\t|\t`)
+          .join("");
+          
+        setTickerWishes(formattedWishes);
+      } catch (error) {
+        console.error("Ошибка загрузки пожеланий:", error);
+      }
+    };
+
+    fetchWishes();
+  }, []);
 
   // Анимация главного экрана
   useEffect(() => {
@@ -23,6 +47,9 @@ export default function App() {
 
   const handleNewWish = (newWish) => {
     setWishes(prevWishes => [newWish, ...prevWishes]);
+    
+    // Обновляем бегущую строку при добавлении нового пожелания
+    setTickerWishes(prev => `\t|\t${newWish.message}\t|\t${prev}`);
   };
 
   // Отслеживаем, какой блок в зоне видимости
@@ -30,7 +57,7 @@ export default function App() {
     const handleScroll = () => {
       const gallery = document.getElementById("gallery");
       const location = document.getElementById("location");
-      const guestbook = document.getElementById("guestbook"); // ✅ Добавлено
+      const guestbook = document.getElementById("guestbook");
 
       const scrollPos = window.scrollY + 100;
 
@@ -56,7 +83,7 @@ export default function App() {
     const element = document.getElementById(id);
     if (element) {
       window.scrollTo({
-        top: element.offsetTop - 80, // Учитываем высоту навбара
+        top: element.offsetTop - 80,
         behavior: "smooth",
       });
     }
@@ -85,7 +112,6 @@ export default function App() {
           >
             Карта
           </button>
-          {/* ✅ Новый пункт в навбаре */}
           <button
             onClick={() => scrollTo("guestbook")}
             style={{
@@ -142,6 +168,33 @@ export default function App() {
           >
             Приглашаем вас разделить с нами этот особенный день
           </motion.p>
+
+          {/* 🎠 Бегущая строка с пожеланиями */}
+          {tickerWishes && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1.5, duration: 0.6 }}
+              style={styles.tickerContainer}
+            >
+              <div style={styles.tickerWrapper}>
+                <motion.div
+                  style={styles.tickerContent}
+                  animate={{ x: ["0%", "-50%"] }}
+                  transition={{
+                    x: {
+                      repeat: Infinity,
+                      repeatType: "loop",
+                      duration: 60, // Низкая скорость для чтения
+                      ease: "linear",
+                    },
+                  }}
+                >
+                  {tickerWishes.repeat(2)} {/* Дублируем для плавного перехода */}
+                </motion.div>
+              </div>
+            </motion.div>
+          )}
         </motion.div>
       </main>
 
@@ -155,7 +208,7 @@ export default function App() {
         <Location />
       </section>
 
-      {/* 📝 Гостевая книга — под картой */}
+      {/* 📝 Гостевая книга */}
       <section id="guestbook">
         <GuestbookForm onNewWish={handleNewWish} />
       </section>
@@ -248,6 +301,27 @@ const styles = {
     maxWidth: "350px",
     margin: "20px auto 0",
     fontStyle: "italic",
+  },
+  
+  // Бегущая строка
+  tickerContainer: {
+    width: "100%",
+    overflow: "hidden",
+    marginTop: "30px",
+    padding: "0 20px", // Отступы по бокам для мобильных устройств
+  },
+  tickerWrapper: {
+    width: "100%",
+    overflow: "hidden",
+    position: "relative",
+  },
+  tickerContent: {
+    whiteSpace: "nowrap",
+    display: "inline-block",
+    color: "var(--color-accent)",
+    fontSize: "0.95rem",
+    fontWeight: "500",
+    padding: "8px 0",
   },
 };
 
