@@ -18,9 +18,10 @@ export default function App() {
   const [tickerWishes, setTickerWishes] = useState("");
   const [tickerError, setTickerError] = useState(false);
 
-  // Загрузка пожеланий для бегущей строки
+  // Функция для загрузки пожеланий
   const fetchWishes = async () => {
     try {
+      console.log("🔄 Загрузка пожеланий из БД...");
       const res = await fetch(`${API_URL}/api/wishes`);
       
       if (!res.ok) {
@@ -28,6 +29,7 @@ export default function App() {
       }
       
       const wishesData = await res.json();
+      console.log("✅ Пожелания успешно загружены:", wishesData);
       
       // Форматируем пожелания в нужный формат
       const formattedWishes = wishesData
@@ -37,7 +39,7 @@ export default function App() {
       setTickerWishes(formattedWishes);
       setTickerError(false);
     } catch (error) {
-      console.error("Ошибка загрузки пожеланий:", error);
+      console.error("❌ Ошибка загрузки пожеланий:", error);
       setTickerError(true);
       
       // Заглушка с примером пожеланий
@@ -62,7 +64,10 @@ export default function App() {
   useEffect(() => {
     fetchWishes(); // Первоначальная загрузка
     
-    const intervalId = setInterval(fetchWishes, 30000); // Обновление каждые 30 секунд
+    const intervalId = setInterval(() => {
+      console.log("🔄 Автоматическое обновление пожеланий...");
+      fetchWishes();
+    }, 30000); // Обновление каждые 30 секунд
     
     return () => clearInterval(intervalId); // Очистка интервала при размонтировании
   }, []);
@@ -78,6 +83,7 @@ export default function App() {
     setWishes(prevWishes => [newWish, ...prevWishes]);
     
     // Обновляем бегущую строку при добавлении нового пожелания
+    console.log("🔄 Обновление бегущей строки новым пожеланием");
     setTickerWishes(prev => `\t|\t${newWish.message}\t|\t${prev}`);
   };
 
@@ -199,36 +205,34 @@ export default function App() {
           </motion.p>
 
           {/* 🎠 Бегущая строка с пожеланиями */}
-          {tickerWishes && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 1.5, duration: 0.6 }}
-              style={styles.tickerContainer}
-            >
-              <div style={styles.tickerWrapper}>
-                <motion.div
-                  style={styles.tickerContent}
-                  animate={{ x: ["0%", "-50%"] }}
-                  transition={{
-                    x: {
-                      repeat: Infinity,
-                      repeatType: "loop",
-                      duration: 120, // Низкая скорость для чтения
-                      ease: "linear",
-                    },
-                  }}
-                >
-                  {tickerWishes.repeat(2)} {/* Дублируем для плавного перехода */}
-                </motion.div>
-              </div>
-              {tickerError && (
-                <p style={styles.errorNote}>
-                  Используются примеры пожеланий (ошибка загрузки)
-                </p>
-              )}
-            </motion.div>
-          )}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1.5, duration: 0.6 }}
+            style={styles.tickerContainer}
+          >
+            <div style={styles.tickerWrapper}>
+              <motion.div
+                style={styles.tickerContent}
+                animate={{ x: ["0%", "-50%"] }}
+                transition={{
+                  x: {
+                    repeat: Infinity,
+                    repeatType: "loop",
+                    duration: 120, // Низкая скорость для чтения
+                    ease: "linear",
+                  },
+                }}
+              >
+                {tickerWishes ? tickerWishes.repeat(2) : "\t|\tЗагрузка пожеланий...\t|\t".repeat(2)}
+              </motion.div>
+            </div>
+            {tickerError && (
+              <p style={styles.errorNote}>
+                Используются примеры пожеланий (ошибка загрузки)
+              </p>
+            )}
+          </motion.div>
         </motion.div>
       </main>
 
