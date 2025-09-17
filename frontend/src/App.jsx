@@ -16,28 +16,55 @@ export default function App() {
   const [wishes, setWishes] = useState([]);
   const [activeSection, setActiveSection] = useState("");
   const [tickerWishes, setTickerWishes] = useState("");
+  const [tickerError, setTickerError] = useState(false);
 
   // Загрузка пожеланий для бегущей строки
-  useEffect(() => {
-    const fetchWishes = async () => {
-      try {
-        const res = await fetch(`${API_URL}/api/wishes`);
-        const wishesData = await res.json();
-        
-        // Форматируем пожелания в нужный формат
-        const formattedWishes = wishesData
-          .map(wish => `\t|\t${wish.message}\t|\t`)
-          .join("");
-          
-        setTickerWishes(formattedWishes);
-      } catch (error) {
-        console.error("Ошибка загрузки пожеланий:", error);
-        // Заглушка на случай ошибки
-        setTickerWishes("\t|\tСчастья и любви!\t|\t\t|\tКрепкого брака!\t|\t\t|\tМира и гармонии!\t|\t");
+  const fetchWishes = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/wishes`);
+      
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
       }
-    };
+      
+      const wishesData = await res.json();
+      
+      // Форматируем пожелания в нужный формат
+      const formattedWishes = wishesData
+        .map(wish => `\t|\t${wish.message}\t|\t`)
+        .join("");
+        
+      setTickerWishes(formattedWishes);
+      setTickerError(false);
+    } catch (error) {
+      console.error("Ошибка загрузки пожеланий:", error);
+      setTickerError(true);
+      
+      // Заглушка с примером пожеланий
+      const sampleWishes = [
+        "Счастья и радости!",
+        "Любви и взаимопонимания!",
+        "Крепкого здоровья!",
+        "Процветания и успехов!",
+        "Вечной романтики!",
+        "Мира и гармонии в семье!"
+      ];
+      
+      const formattedSample = sampleWishes
+        .map(wish => `\t|\t${wish}\t|\t`)
+        .join("");
+        
+      setTickerWishes(formattedSample);
+    }
+  };
 
-    fetchWishes();
+  // Загрузка при монтировании и каждые 30 секунд
+  useEffect(() => {
+    fetchWishes(); // Первоначальная загрузка
+    
+    const intervalId = setInterval(fetchWishes, 30000); // Обновление каждые 30 секунд
+    
+    return () => clearInterval(intervalId); // Очистка интервала при размонтировании
   }, []);
 
   // Анимация главного экрана
@@ -92,7 +119,7 @@ export default function App() {
   };
 
   return (
-    <div style={{ overflowX: 'hidden' }}> {/* Добавляем ограничение по ширине */}
+    <div style={{ overflowX: 'hidden', width: '100%' }}>
       {/* 🔝 Фиксированный навбар */}
       <nav style={styles.nav}>
         <div style={styles.container}>
@@ -187,7 +214,7 @@ export default function App() {
                     x: {
                       repeat: Infinity,
                       repeatType: "loop",
-                      duration: 120, // Увеличиваем длительность для медленной скорости
+                      duration: 120, // Низкая скорость для чтения
                       ease: "linear",
                     },
                   }}
@@ -195,6 +222,11 @@ export default function App() {
                   {tickerWishes.repeat(2)} {/* Дублируем для плавного перехода */}
                 </motion.div>
               </div>
+              {tickerError && (
+                <p style={styles.errorNote}>
+                  Используются примеры пожеланий (ошибка загрузки)
+                </p>
+              )}
             </motion.div>
           )}
         </motion.div>
@@ -230,7 +262,7 @@ const styles = {
     backdropFilter: "blur(10px)",
     zIndex: 1000,
     padding: "10px 0",
-    boxSizing: 'border-box', // Добавляем box-sizing
+    boxSizing: 'border-box',
   },
   container: {
     maxWidth: "600px",
@@ -239,8 +271,8 @@ const styles = {
     justifyContent: "center",
     gap: "30px",
     fontFamily: "Poppins, sans-serif",
-    padding: "0 20px", // Добавляем отступы
-    boxSizing: 'border-box', // Добавляем box-sizing
+    padding: "0 20px",
+    boxSizing: 'border-box',
   },
   button: {
     background: "none",
@@ -251,7 +283,7 @@ const styles = {
     padding: "8px 12px",
     borderRadius: "8px",
     transition: "all 0.3s ease",
-    whiteSpace: 'nowrap', // Запрещаем перенос текста
+    whiteSpace: 'nowrap',
   },
   active: {
     color: "var(--color-accent)",
@@ -272,13 +304,14 @@ const styles = {
     background: "linear-gradient(135deg, var(--color-primary), var(--color-secondary))",
     position: "relative",
     zIndex: 1,
-    boxSizing: 'border-box', // Добавляем box-sizing
-    overflow: 'hidden', // Скрываем переполнение
+    boxSizing: 'border-box',
+    overflow: 'hidden',
+    width: '100%',
   },
   heroContent: {
     maxWidth: "500px",
-    width: '100%', // Добавляем ширину
-    boxSizing: 'border-box', // Добавляем box-sizing
+    width: '100%',
+    boxSizing: 'border-box',
   },
   title: {
     fontSize: "2.8rem",
@@ -318,8 +351,9 @@ const styles = {
     width: "100%",
     overflow: "hidden",
     marginTop: "30px",
-    padding: "0 20px", // Отступы по бокам для мобильных устройств
-    boxSizing: 'border-box', // Добавляем box-sizing
+    padding: "0 20px",
+    boxSizing: 'border-box',
+    position: 'relative',
   },
   tickerWrapper: {
     width: "100%",
@@ -333,6 +367,13 @@ const styles = {
     fontSize: "0.95rem",
     fontWeight: "500",
     padding: "8px 0",
+  },
+  errorNote: {
+    fontSize: "0.7rem",
+    color: "#999",
+    marginTop: "5px",
+    fontStyle: "italic",
+    textAlign: 'center',
   },
 };
 
