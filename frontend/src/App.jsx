@@ -7,7 +7,7 @@ import Location from "./components/Location";
 import GuestbookForm from "./components/GuestbookForm";
 
 // Константы
-const API_URL = process.env.REACT_APP_API_URL || "";
+const API_URL = import.meta.env.VITE_API_URL;
 
 export default function App() {
   const titleRef = useRef(null);
