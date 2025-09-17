@@ -32,6 +32,8 @@ export default function App() {
         setTickerWishes(formattedWishes);
       } catch (error) {
         console.error("Ошибка загрузки пожеланий:", error);
+        // Заглушка на случай ошибки
+        setTickerWishes("\t|\tСчастья и любви!\t|\t\t|\tКрепкого брака!\t|\t\t|\tМира и гармонии!\t|\t");
       }
     };
 
@@ -90,7 +92,7 @@ export default function App() {
   };
 
   return (
-    <>
+    <div style={{ overflowX: 'hidden' }}> {/* Добавляем ограничение по ширине */}
       {/* 🔝 Фиксированный навбар */}
       <nav style={styles.nav}>
         <div style={styles.container}>
@@ -185,7 +187,7 @@ export default function App() {
                     x: {
                       repeat: Infinity,
                       repeatType: "loop",
-                      duration: 60, // Низкая скорость для чтения
+                      duration: 120, // Увеличиваем длительность для медленной скорости
                       ease: "linear",
                     },
                   }}
@@ -212,7 +214,7 @@ export default function App() {
       <section id="guestbook">
         <GuestbookForm onNewWish={handleNewWish} />
       </section>
-    </>
+    </div>
   );
 }
 
@@ -228,6 +230,7 @@ const styles = {
     backdropFilter: "blur(10px)",
     zIndex: 1000,
     padding: "10px 0",
+    boxSizing: 'border-box', // Добавляем box-sizing
   },
   container: {
     maxWidth: "600px",
@@ -236,6 +239,8 @@ const styles = {
     justifyContent: "center",
     gap: "30px",
     fontFamily: "Poppins, sans-serif",
+    padding: "0 20px", // Добавляем отступы
+    boxSizing: 'border-box', // Добавляем box-sizing
   },
   button: {
     background: "none",
@@ -246,6 +251,7 @@ const styles = {
     padding: "8px 12px",
     borderRadius: "8px",
     transition: "all 0.3s ease",
+    whiteSpace: 'nowrap', // Запрещаем перенос текста
   },
   active: {
     color: "var(--color-accent)",
@@ -266,9 +272,13 @@ const styles = {
     background: "linear-gradient(135deg, var(--color-primary), var(--color-secondary))",
     position: "relative",
     zIndex: 1,
+    boxSizing: 'border-box', // Добавляем box-sizing
+    overflow: 'hidden', // Скрываем переполнение
   },
   heroContent: {
     maxWidth: "500px",
+    width: '100%', // Добавляем ширину
+    boxSizing: 'border-box', // Добавляем box-sizing
   },
   title: {
     fontSize: "2.8rem",
@@ -309,6 +319,7 @@ const styles = {
     overflow: "hidden",
     marginTop: "30px",
     padding: "0 20px", // Отступы по бокам для мобильных устройств
+    boxSizing: 'border-box', // Добавляем box-sizing
   },
   tickerWrapper: {
     width: "100%",
