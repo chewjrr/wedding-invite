@@ -1,3 +1,4 @@
+// internal/handlers/telegram_webhook.go
 package handlers
 
 import (
@@ -5,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"net/url"
 	"os"
@@ -22,6 +24,14 @@ type Update struct {
 		} `json:"chat"`
 		Text string `json:"text"`
 	} `json:"message"`
+}
+
+// Wish — структура для хранения пожелания
+type Wish struct {
+	ID        int    `json:"id"`
+	Name      string `json:"name"`
+	Message   string `json:"message"`
+	CreatedAt string `json:"created_at"`
 }
 
 func HandleWebhook(w http.ResponseWriter, r *http.Request) {
@@ -62,10 +72,11 @@ func HandleWebhook(w http.ResponseWriter, r *http.Request) {
 
 	// Используем if/else для гибкой обработки команд
 	if text == "/start" {
-		sendTelegramMessage(ownerID, "Привет! 🌸\n\nДоступные команды:\n\n/list — все пожелания\n/delete 5 — удалить по ID")
+		sendTelegramMessage(ownerID, "Привет! 🌸\n\nДоступные команды:\n\n/list — все пожелания + JSON-файл\n/delete 5 — удалить по ID")
 
 	} else if text == "/list" {
-		rows, err := database.DB.Query("SELECT id, name, message FROM wishes ORDER BY created_at DESC LIMIT 30")
+		// Загружаем ВСЕ пожелания
+		rows, err := database.DB.Query("SELECT id, name, message, created_at FROM wishes ORDER BY created_at DESC")
 		if err != nil {
 			log.Printf("❌ Ошибка запроса к БД: %v", err)
 			sendTelegramMessage(ownerID, "❌ Ошибка базы данных.")
@@ -73,25 +84,44 @@ func HandleWebhook(w http.ResponseWriter, r *http.Request) {
 		}
 		defer rows.Close()
 
+		var wishes []Wish
 		var response strings.Builder
 		response.WriteString("📋 <b>Все пожелания</b>:\n\n")
 		count := 0
+
 		for rows.Next() {
-			var id int
-			var name, message string
-			if err := rows.Scan(&id, &name, &message); err != nil {
+			var w Wish
+			if err := rows.Scan(&w.ID, &w.Name, &w.Message, &w.CreatedAt); err != nil {
 				log.Printf("❌ Ошибка сканирования строки: %v", err)
 				continue
 			}
-			response.WriteString(fmt.Sprintf("<b>№%d</b> %s: %s\n\n", id, htmlEscape(name), htmlEscape(message)))
+			w.Name = htmlEscape(w.Name)
+			w.Message = htmlEscape(w.Message)
+
+			wishes = append(wishes, w)
+			response.WriteString(fmt.Sprintf("<b>№%d</b> %s: %s\n\n", w.ID, w.Name, w.Message))
 			count++
 		}
 
 		if count == 0 {
 			response.WriteString("Пока нет пожеланий.")
+			sendTelegramMessage(ownerID, response.String())
+			return
 		}
 
+		// Отправляем список
 		sendTelegramMessage(ownerID, response.String())
+
+		// Создаём JSON-файл
+		jsonData, err := json.MarshalIndent(wishes, "", "  ")
+		if err != nil {
+			log.Printf("❌ Ошибка сериализации JSON: %v", err)
+			sendTelegramMessage(ownerID, "❌ Не удалось создать JSON-файл.")
+			return
+		}
+
+		// Отправляем файл
+		sendTelegramFile(ownerID, "wishes.json", jsonData)
 
 	} else if len(text) > 8 && text[:8] == "/delete " {
 		// Обработка /delete 5
@@ -130,6 +160,7 @@ func htmlEscape(s string) string {
 	return s
 }
 
+// sendTelegramMessage отправляет текстовое сообщение
 func sendTelegramMessage(chatID int64, text string) {
 	token := os.Getenv("TG_TOKEN")
 	if token == "" {
@@ -138,11 +169,14 @@ func sendTelegramMessage(chatID int64, text string) {
 	}
 
 	apiURL := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", token)
-	data := fmt.Sprintf("chat_id=%d&text=%s&parse_mode=HTML", chatID, url.QueryEscape(text))
+	data := url.Values{}
+	data.Set("chat_id", strconv.FormatInt(chatID, 10))
+	data.Set("text", text)
+	data.Set("parse_mode", "HTML")
 
-	resp, err := http.Post(apiURL, "application/x-www-form-urlencoded", strings.NewReader(data))
+	resp, err := http.Post(apiURL, "application/x-www-form-urlencoded", strings.NewReader(data.Encode()))
 	if err != nil {
-		log.Printf("❌ Ошибка отправки в Telegram: %v", err)
+		log.Printf("❌ Ошибка отправки сообщения: %v", err)
 		return
 	}
 	defer resp.Body.Close()
@@ -150,5 +184,53 @@ func sendTelegramMessage(chatID int64, text string) {
 	if resp.StatusCode != 200 {
 		body, _ := io.ReadAll(resp.Body)
 		log.Printf("❌ Telegram API error: %s", body)
+	}
+}
+
+// sendTelegramFile отправляет файл (например, JSON-бэкап)
+func sendTelegramFile(chatID int64, fileName string, fileData []byte) {
+	token := os.Getenv("TG_TOKEN")
+	if token == "" {
+		log.Println("⚠️ TG_TOKEN не задан")
+		return
+	}
+
+	apiURL := fmt.Sprintf("https://api.telegram.org/bot%s/sendDocument", token)
+
+	body := new(strings.Builder)
+	writer := multipart.NewWriter(body)
+
+	// Добавляем chat_id
+	if err := writer.WriteField("chat_id", strconv.FormatInt(chatID, 10)); err != nil {
+		log.Printf("❌ Ошибка добавления chat_id: %v", err)
+		return
+	}
+
+	// Добавляем файл
+	fileWriter, err := writer.CreateFormFile("document", fileName)
+	if err != nil {
+		log.Printf("❌ Ошибка создания файла: %v", err)
+		return
+	}
+	if _, err = fileWriter.Write(fileData); err != nil {
+		log.Printf("❌ Ошибка записи данных в файл: %v", err)
+		return
+	}
+
+	// Завершаем multipart
+	contentType := writer.FormDataContentType()
+	writer.Close()
+
+	// Отправляем POST-запрос
+	resp, err := http.Post(apiURL, contentType, strings.NewReader(body.String()))
+	if err != nil {
+		log.Printf("❌ Ошибка отправки файла: %v", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		bodyResp, _ := io.ReadAll(resp.Body)
+		log.Printf("❌ Ошибка Telegram API при отправке файла: %s", bodyResp)
 	}
 }
