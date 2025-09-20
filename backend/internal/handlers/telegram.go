@@ -16,22 +16,27 @@ import (
 	"wedding-backend/internal/database"
 )
 
+// Wish — структура пожелания для JSON
+type Wish struct {
+	ID        int    `json:"id"`
+	Name      string `json:"name"`
+	Message   string `json:"message"`
+	CreatedAt string `json:"created_at"`
+}
+
+// Update — структура обновления от Telegram
 type Update struct {
 	UpdateID int `json:"update_id"`
 	Message  struct {
 		Chat struct {
 			ID int64 `json:"id"`
 		} `json:"chat"`
-		Text string `json:"text"`
+		Text     string `json:"text"`
+		Document *struct {
+			FileID   string `json:"file_id"`
+			FileName string `json:"file_name"`
+		} `json:"document,omitempty"`
 	} `json:"message"`
-}
-
-// Wish — структура для хранения пожелания
-type Wish struct {
-	ID        int    `json:"id"`
-	Name      string `json:"name"`
-	Message   string `json:"message"`
-	CreatedAt string `json:"created_at"`
 }
 
 func HandleWebhook(w http.ResponseWriter, r *http.Request) {
@@ -70,12 +75,15 @@ func HandleWebhook(w http.ResponseWriter, r *http.Request) {
 
 	text := strings.TrimSpace(update.Message.Text)
 
-	// Используем if/else для гибкой обработки команд
+	// === ОБРАБОТКА КОМАНД ===
 	if text == "/start" {
-		sendTelegramMessage(ownerID, "Привет! 🌸\n\nДоступные команды:\n\n/list — все пожелания + JSON-файл\n/delete 5 — удалить по ID")
+		sendTelegramMessage(ownerID, "Привет! 🌸\n\nДоступные команды:\n\n"+
+			"/list — все пожелания + JSON-бэкап\n"+
+			"/delete 5 — удалить по ID\n"+
+			"/delete_all — удалить всё (с подтверждением)\n"+
+			"/restore — восстановить из файла wishes.json")
 
 	} else if text == "/list" {
-		// Загружаем ВСЕ пожелания
 		rows, err := database.DB.Query("SELECT id, name, message, created_at FROM wishes ORDER BY created_at DESC")
 		if err != nil {
 			log.Printf("❌ Ошибка запроса к БД: %v", err)
@@ -105,26 +113,40 @@ func HandleWebhook(w http.ResponseWriter, r *http.Request) {
 
 		if count == 0 {
 			response.WriteString("Пока нет пожеланий.")
-			sendTelegramMessage(ownerID, response.String())
-			return
 		}
 
 		// Отправляем список
 		sendTelegramMessage(ownerID, response.String())
 
-		// Создаём JSON-файл
+		// Создаём и отправляем JSON-файл
 		jsonData, err := json.MarshalIndent(wishes, "", "  ")
 		if err != nil {
 			log.Printf("❌ Ошибка сериализации JSON: %v", err)
-			sendTelegramMessage(ownerID, "❌ Не удалось создать JSON-файл.")
+			return
+		}
+		sendTelegramFile(ownerID, "wishes.json", jsonData)
+
+	} else if text == "/delete_all" {
+		sendTelegramMessage(ownerID, "⚠️ Вы уверены?\n\nИспользуйте:\n/delete_all_confirm — подтвердить\n/abort — отмена")
+
+	} else if text == "/delete_all_confirm" {
+		res, err := database.DB.Exec("DELETE FROM wishes")
+		if err != nil {
+			log.Printf("❌ Ошибка при удалении всех пожеланий: %v", err)
+			sendTelegramMessage(ownerID, "❌ Ошибка базы данных.")
 			return
 		}
 
-		// Отправляем файл
-		sendTelegramFile(ownerID, "wishes.json", jsonData)
+		rowsAffected, _ := res.RowsAffected()
+		sendTelegramMessage(ownerID, fmt.Sprintf("✅ Удалено %d пожеланий.", rowsAffected))
+
+	} else if text == "/abort" {
+		sendTelegramMessage(ownerID, "✅ Операция отменена.")
+
+	} else if text == "/restore" {
+		sendTelegramMessage(ownerID, "📤 Отправьте файл <code>wishes.json</code>, чтобы восстановить пожелания.")
 
 	} else if len(text) > 8 && text[:8] == "/delete " {
-		// Обработка /delete 5
 		var id int
 		_, err := fmt.Sscanf(text, "/delete %d", &id)
 		if err != nil || id <= 0 {
@@ -146,12 +168,17 @@ func HandleWebhook(w http.ResponseWriter, r *http.Request) {
 			sendTelegramMessage(ownerID, "❌ Пожелание с таким ID не найдено.")
 		}
 
+	} else if update.Message.Document != nil && strings.ToLower(update.Message.Document.FileName) == "wishes.json" {
+		// Автоматическое восстановление из файла
+		restoreFromJSON(ownerID, update.Message.Document.FileID)
 	} else {
 		sendTelegramMessage(ownerID, "Неизвестная команда. Используй: /start")
 	}
 }
 
-// Экранируем HTML, чтобы избежать XSS
+// === ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ===
+
+// Экранируем HTML
 func htmlEscape(s string) string {
 	s = strings.ReplaceAll(s, "&", "&amp;")
 	s = strings.ReplaceAll(s, "<", "<")
@@ -160,7 +187,7 @@ func htmlEscape(s string) string {
 	return s
 }
 
-// sendTelegramMessage отправляет текстовое сообщение
+// Отправка текстового сообщения
 func sendTelegramMessage(chatID int64, text string) {
 	token := os.Getenv("TG_TOKEN")
 	if token == "" {
@@ -187,7 +214,7 @@ func sendTelegramMessage(chatID int64, text string) {
 	}
 }
 
-// sendTelegramFile отправляет файл (например, JSON-бэкап)
+// Отправка файла
 func sendTelegramFile(chatID int64, fileName string, fileData []byte) {
 	token := os.Getenv("TG_TOKEN")
 	if token == "" {
@@ -196,32 +223,21 @@ func sendTelegramFile(chatID int64, fileName string, fileData []byte) {
 	}
 
 	apiURL := fmt.Sprintf("https://api.telegram.org/bot%s/sendDocument", token)
-
 	body := new(strings.Builder)
 	writer := multipart.NewWriter(body)
 
-	// Добавляем chat_id
-	if err := writer.WriteField("chat_id", strconv.FormatInt(chatID, 10)); err != nil {
-		log.Printf("❌ Ошибка добавления chat_id: %v", err)
-		return
-	}
+	_ = writer.WriteField("chat_id", strconv.FormatInt(chatID, 10))
 
-	// Добавляем файл
 	fileWriter, err := writer.CreateFormFile("document", fileName)
 	if err != nil {
 		log.Printf("❌ Ошибка создания файла: %v", err)
 		return
 	}
-	if _, err = fileWriter.Write(fileData); err != nil {
-		log.Printf("❌ Ошибка записи данных в файл: %v", err)
-		return
-	}
+	_, _ = fileWriter.Write(fileData)
 
-	// Завершаем multipart
 	contentType := writer.FormDataContentType()
 	writer.Close()
 
-	// Отправляем POST-запрос
 	resp, err := http.Post(apiURL, contentType, strings.NewReader(body.String()))
 	if err != nil {
 		log.Printf("❌ Ошибка отправки файла: %v", err)
@@ -233,4 +249,108 @@ func sendTelegramFile(chatID int64, fileName string, fileData []byte) {
 		bodyResp, _ := io.ReadAll(resp.Body)
 		log.Printf("❌ Ошибка Telegram API при отправке файла: %s", bodyResp)
 	}
+}
+
+// Получение URL файла от Telegram
+func getTelegramFileURL(fileID string) (string, error) {
+	token := os.Getenv("TG_TOKEN")
+	if token == "" {
+		return "", fmt.Errorf("TG_TOKEN not set")
+	}
+
+	apiURL := fmt.Sprintf("https://api.telegram.org/bot%s/getFile", token)
+	data := url.Values{}
+	data.Set("file_id", fileID)
+
+	resp, err := http.Post(apiURL, "application/x-www-form-urlencoded", strings.NewReader(data.Encode()))
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	var result struct {
+		Ok     bool `json:"ok"`
+		Result struct {
+			FilePath string `json:"file_path"`
+		} `json:"result"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return "", err
+	}
+
+	if !result.Ok {
+		return "", fmt.Errorf("Telegram API error")
+	}
+
+	return fmt.Sprintf("https://api.telegram.org/file/bot%s/%s", token, result.Result.FilePath), nil
+}
+
+// Восстановление из JSON-файла
+func restoreFromJSON(chatID int64, fileID string) {
+	fileURL, err := getTelegramFileURL(fileID)
+	if err != nil {
+		log.Printf("❌ Ошибка получения URL файла: %v", err)
+		sendTelegramMessage(chatID, "❌ Не удалось получить файл.")
+		return
+	}
+
+	resp, err := http.Get(fileURL)
+	if err != nil {
+		log.Printf("❌ Ошибка загрузки файла: %v", err)
+		sendTelegramMessage(chatID, "❌ Не удалось загрузить файл.")
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		sendTelegramMessage(chatID, "❌ Ошибка при скачивании файла.")
+		return
+	}
+
+	var wishes []Wish
+	if err := json.NewDecoder(resp.Body).Decode(&wishes); err != nil {
+		log.Printf("❌ Ошибка парсинга JSON: %v", err)
+		sendTelegramMessage(chatID, "❌ Неверный формат JSON.")
+		return
+	}
+
+	if len(wishes) == 0 {
+		sendTelegramMessage(chatID, "❌ Файл пуст.")
+		return
+	}
+
+	tx, err := database.DB.Begin()
+	if err != nil {
+		sendTelegramMessage(chatID, "❌ Ошибка базы данных.")
+		return
+	}
+	defer tx.Rollback()
+
+	stmt, err := tx.Prepare("INSERT INTO wishes (id, name, message, created_at) VALUES ($1, $2, $3, $4) ON CONFLICT (id) DO UPDATE SET name = $2, message = $3, created_at = $4")
+	if err != nil {
+		sendTelegramMessage(chatID, "❌ Ошибка подготовки запроса.")
+		return
+	}
+	defer stmt.Close()
+
+	restored := 0
+	for _, w := range wishes {
+		if w.Name == "" || w.Message == "" {
+			continue
+		}
+		_, err := stmt.Exec(w.ID, w.Name, w.Message, w.CreatedAt)
+		if err != nil {
+			log.Printf("❌ Ошибка вставки ID=%d: %v", w.ID, err)
+			continue
+		}
+		restored++
+	}
+
+	if err := tx.Commit(); err != nil {
+		sendTelegramMessage(chatID, "❌ Ошибка при восстановлении.")
+		return
+	}
+
+	sendTelegramMessage(chatID, fmt.Sprintf("✅ Восстановлено %d пожеланий.", restored))
 }
