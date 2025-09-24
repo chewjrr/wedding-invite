@@ -1,5 +1,6 @@
 // src/components/Schedule.jsx
 import { motion } from "framer-motion";
+import { useState } from "react";
 
 export default function Schedule() {
   // Анимация для контейнера с задержкой по элементам
@@ -23,21 +24,63 @@ export default function Schedule() {
     },
   };
 
-  // Подкомпонент: один блок расписания (перемещен внутрь Schedule)
-  const TimelineItem = ({ time, title, children }) => {
+  // Подкомпонент: один блок расписания (теперь с собственным состоянием)
+  const TimelineItem = ({ time, title, children, index }) => {
+    const [isOpen, setIsOpen] = useState(false);
+
+    // Анимация для раскрытия/скрытия контента
+    const contentVariants = {
+      collapsed: { 
+        height: 0, 
+        opacity: 0,
+        transition: { duration: 0.3, ease: "easeInOut" }
+      },
+      expanded: { 
+        height: "auto", 
+        opacity: 1,
+        transition: { duration: 0.3, ease: "easeInOut" }
+      }
+    };
+
+    const toggleItem = (e) => {
+      e.stopPropagation();
+      setIsOpen(!isOpen);
+    };
+
     return (
-      <motion.div variants={itemVariants} style={styles.item}>
+      <motion.div 
+        variants={itemVariants} 
+        style={styles.item}
+        layout // Добавляем layout анимацию для плавности
+      >
         <div style={styles.time}>{time}</div>
         <div style={styles.content}>
-          <h3 style={styles.blockTitle}>{title}</h3>
-          {children}
+          <div style={styles.header} onClick={toggleItem}>
+            <h3 style={styles.blockTitle}>{title}</h3>
+            <motion.div
+              animate={{ rotate: isOpen ? 90 : 0 }}
+              transition={{ duration: 0.3 }}
+              style={styles.arrow}
+            >
+              ▼
+            </motion.div>
+          </div>
+          
+          <motion.div
+            variants={contentVariants}
+            initial="collapsed"
+            animate={isOpen ? "expanded" : "collapsed"}
+            style={styles.contentInner}
+          >
+            {children}
+          </motion.div>
         </div>
       </motion.div>
     );
   };
 
   return (
-    <section id = " schedule" style={styles.section}>
+    <section id="schedule" style={styles.section}>
       <div style={styles.container}>
         <h2 style={styles.title}>План свадьбы</h2>
         <p style={styles.subtitle}>Каждый момент — часть нашей истории</p>
@@ -50,7 +93,7 @@ export default function Schedule() {
           style={styles.timeline}
         >
           {/* Блок 1: Welcome-зона */}
-          <TimelineItem time="13:00 – 14:00" title="Приветствие гостей и Welcome-зона">
+          <TimelineItem time="13:00 – 14:00" title="Приветствие гостей и Welcome-зона" index={0}>
             <ul style={styles.list}>
               <li>Гости прибывают, их встречают молодожёны или координатор</li>
               <li>Работает зона с напитками и закусками</li>
@@ -59,7 +102,7 @@ export default function Schedule() {
           </TimelineItem>
 
           {/* Блок 2: Церемония */}
-          <TimelineItem time="14:00 – 14:30" title="Выездная церемония бракосочетания">
+          <TimelineItem time="14:00 – 14:30" title="Выездная церемония бракосочетания" index={1}>
             <ul style={styles.list}>
               <li>Начало церемонии. Гости занимают свои места</li>
               <li>Обмен кольцами.</li>
@@ -68,7 +111,7 @@ export default function Schedule() {
           </TimelineItem>
 
           {/* Блок 3: Первый банкет */}
-          <TimelineItem time="14:30 – 15:20" title="Первый банкетный блок: знакомство и атмосфера">
+          <TimelineItem time="14:30 – 15:20" title="Первый банкетный блок: знакомство и атмосфера" index={2}>
             <ul style={styles.list}>
               <li>Приветственный тост родителей</li>
               <li>Первый тост молодожёнов</li>
@@ -79,12 +122,12 @@ export default function Schedule() {
           </TimelineItem>
 
           {/* Блок 4: Музыкальная пауза */}
-          <TimelineItem time="15:20 – 15:40" title="Музыкальная пауза">
+          <TimelineItem time="15:20 – 15:40" title="Музыкальная пауза" index={3}>
             <p style={styles.text}>Гости общаются, танцуют, продолжают трапезу</p>
           </TimelineItem>
 
           {/* Блок 5: Второй банкет */}
-          <TimelineItem time="15:40 – 16:30" title="Второй банкетный блок: развлечения и энергия">
+          <TimelineItem time="15:40 – 16:30" title="Второй банкетный блок: развлечения и энергия" index={4}>
             <ul style={styles.list}>
               <li><strong>Первый танец молодожёнов</strong> — романтичный выход пары</li>
               <li>Интерактивные игры: «Кто лучше знает молодожёнов?»</li>
@@ -94,12 +137,12 @@ export default function Schedule() {
           </TimelineItem>
 
           {/* Блок 6: Пауза */}
-          <TimelineItem time="16:30 – 16:50" title="Музыкальная пауза">
+          <TimelineItem time="16:30 – 16:50" title="Музыкальная пауза" index={5}>
             <p style={styles.text}>Свободное время для гостей</p>
           </TimelineItem>
 
           {/* Блок 7: Развлечения */}
-          <TimelineItem time="16:50 – 18:30" title="Танцевально-развлекательная программа">
+          <TimelineItem time="16:50 – 18:30" title="Танцевально-развлекательная программа" index={6}>
             <ul style={styles.list}>
               <li>Конкурсы: весёлые и подвижные игры</li>
               <li>Музыкальное бинго — угадывай мелодии и выигрывай призы</li>
@@ -109,12 +152,12 @@ export default function Schedule() {
           </TimelineItem>
 
           {/* Блок 8: Свободные танцы */}
-          <TimelineItem time="17:50 – 18:30" title="Свободные танцы">
+          <TimelineItem time="17:50 – 18:30" title="Свободные танцы" index={7}>
             <p style={styles.text}>Гости отдыхают, общаются и танцуют</p>
           </TimelineItem>
 
           {/* Блок 9: Финал */}
-          <TimelineItem time="18:30 – 19:40" title="Финальная часть праздника">
+          <TimelineItem time="18:30 – 19:40" title="Финальная часть праздника" index={8}>
             <ul style={styles.list}>
               <li><strong>Вынос и разрезание торта</strong> — торжественный момент</li>
               <li>«Продажа» первого куска на удачу (средства — в копилку молодых)</li>
@@ -124,7 +167,7 @@ export default function Schedule() {
           </TimelineItem>
 
           {/* Блок 10: Финальный аккорд */}
-          <TimelineItem time="19:40 - 20:00" title="Финальный аккорд">
+          <TimelineItem time="19:40 - 20:00" title="Финальный аккорд" index={9}>
             <ul style={styles.list}>
               <li>Общий финальный танец или салют (по желанию)</li>
               <li>Благодарственное слово молодожёнов</li>
@@ -174,6 +217,7 @@ const styles = {
     borderRadius: "12px",
     padding: "16px",
     boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+    cursor: "pointer",
   },
   time: {
     minWidth: "100px",
@@ -187,11 +231,26 @@ const styles = {
     flex: 1,
     textAlign: "left",
   },
+  header: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: "0px",
+  },
   blockTitle: {
     fontSize: "1.3rem",
     color: "#333",
-    margin: "0 0 10px 0",
+    margin: "0 10px 0 0",
     fontWeight: "500",
+    flex: 1,
+  },
+  arrow: {
+    fontSize: "12px",
+    color: "#999",
+    marginTop: "5px",
+  },
+  contentInner: {
+    overflow: "hidden",
   },
   list: {
     margin: "8px 0",

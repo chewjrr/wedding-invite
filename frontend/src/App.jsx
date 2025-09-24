@@ -18,6 +18,19 @@ export default function App() {
   const [activeSection, setActiveSection] = useState("");
   const [tickerWishes, setTickerWishes] = useState("");
   const [tickerError, setTickerError] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Определяем мобильное устройство
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Функция для загрузки пожеланий
   const fetchWishes = async () => {
@@ -165,42 +178,49 @@ export default function App() {
     <div style={{ overflowX: 'hidden', width: '100%' }}>
       {/* 🔝 Фиксированный навбар */}
       <nav style={styles.nav}>
-        <div style={styles.container}>
+        <div style={{
+          ...styles.container,
+          ...(isMobile && styles.containerMobile)
+        }}>
           <button
             onClick={() => scrollTo("gallery")}
             style={{
               ...styles.button,
+              ...(isMobile && styles.buttonMobile),
               ...(activeSection === "gallery" && styles.active),
             }}
           >
-            Галерея
+            {isMobile ? "Фото" : "Галерея"}
           </button>
           <button
             onClick={() => scrollTo("location")}
             style={{
               ...styles.button,
+              ...(isMobile && styles.buttonMobile),
               ...(activeSection === "location" && styles.active),
             }}
           >
-            Карта
+            {isMobile ? "Карта" : "Место"}
           </button>
           <button
             onClick={() => scrollTo("guestbook")}
             style={{
               ...styles.button,
+              ...(isMobile && styles.buttonMobile),
               ...(activeSection === "guestbook" && styles.active),
             }}
           >
-            Пожелания
+            {isMobile ? "Пожелания" : "Гостевая"}
           </button>
           <button
             onClick={() => scrollTo("schedule")}
             style={{
               ...styles.button,
+              ...(isMobile && styles.buttonMobile),
               ...(activeSection === "schedule" && styles.active),
             }}
           >
-            Время
+            {isMobile ? "Время" : "Расписание"}
           </button>
         </div>
       </nav>
@@ -214,7 +234,10 @@ export default function App() {
           transition={{ duration: 0.8, ease: "easeOut" }}
           style={styles.heroContent}
         >
-          <h1 style={styles.title}>
+          <h1 style={{
+            ...styles.title,
+            ...(isMobile && styles.titleMobile)
+          }}>
             Екатерина
             <span style={styles.heart}> & </span>
             Всеволод
@@ -224,7 +247,10 @@ export default function App() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5, duration: 0.6 }}
-            style={styles.date}
+            style={{
+              ...styles.date,
+              ...(isMobile && styles.dateMobile)
+            }}
           >
             11.11.2025
           </motion.p>
@@ -244,7 +270,10 @@ export default function App() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 1.2, duration: 0.6 }}
-            style={styles.subtitle}
+            style={{
+              ...styles.subtitle,
+              ...(isMobile && styles.subtitleMobile)
+            }}
           >
             Приглашаем вас разделить с нами этот особенный день
           </motion.p>
@@ -257,7 +286,10 @@ export default function App() {
           >
             <div style={styles.tickerWrapper}>
               <motion.div
-                style={styles.tickerContent}
+                style={{
+                  ...styles.tickerContent,
+                  ...(isMobile && styles.tickerContentMobile)
+                }}
                 animate={{ x: ["0%", "-50%"] }}
                 transition={{
                   x: {
@@ -299,7 +331,7 @@ export default function App() {
   );
 }
 
-// Стили остаются без изменений
+// Стили с адаптивностью
 const styles = {
   nav: {
     position: "fixed",
@@ -322,6 +354,11 @@ const styles = {
     padding: "0 20px",
     boxSizing: 'border-box',
   },
+  containerMobile: {
+    maxWidth: "100%",
+    gap: "15px",
+    padding: "0 15px",
+  },
   button: {
     background: "none",
     border: "none",
@@ -332,6 +369,14 @@ const styles = {
     borderRadius: "8px",
     transition: "all 0.3s ease",
     whiteSpace: 'nowrap',
+    minWidth: 'auto',
+  },
+  buttonMobile: {
+    fontSize: "0.85rem",
+    padding: "6px 6px",
+    borderRadius: "6px",
+    flex: 1,
+    textAlign: 'center',
   },
   active: {
     color: "var(--color-accent)",
@@ -366,6 +411,10 @@ const styles = {
     margin: "0",
     lineHeight: "1.3",
   },
+  titleMobile: {
+    fontSize: "2.2rem",
+    lineHeight: "1.2",
+  },
   heart: {
     color: "var(--color-accent)",
     fontWeight: "600",
@@ -375,6 +424,10 @@ const styles = {
     color: "#555",
     margin: "15px 0 20px",
     fontWeight: "400",
+  },
+  dateMobile: {
+    fontSize: "1.3rem",
+    margin: "10px 0 15px",
   },
   underline: {
     height: "2px",
@@ -390,6 +443,11 @@ const styles = {
     maxWidth: "350px",
     margin: "20px auto 0",
     fontStyle: "italic",
+  },
+  subtitleMobile: {
+    fontSize: "1rem",
+    maxWidth: "300px",
+    margin: "15px auto 0",
   },
   tickerContainer: {
     width: "100%",
@@ -411,6 +469,10 @@ const styles = {
     fontSize: "0.95rem",
     fontWeight: "500",
     padding: "8px 0",
+  },
+  tickerContentMobile: {
+    fontSize: "0.85rem",
+    padding: "6px 0",
   },
   errorNote: {
     fontSize: "0.7rem",
