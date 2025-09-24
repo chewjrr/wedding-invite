@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import Gallery from "./components/Gallery";
 import Location from "./components/Location";
 import GuestbookForm from "./components/GuestbookForm";
+import Schedule from "./components/Schedule";
 
 // Константы
 const API_URL = import.meta.env.VITE_API_URL;
@@ -18,86 +19,81 @@ export default function App() {
   const [tickerWishes, setTickerWishes] = useState("");
   const [tickerError, setTickerError] = useState(false);
 
-// Функция для загрузки пожеланий
-const fetchWishes = async () => {
-  try {
-    console.log("🔄 Загрузка пожеланий из БД...");
-    console.log("📡 URL запроса:", `${API_URL}/api/wishes`);
-    
-    const res = await fetch(`${API_URL}/api/wishes`);
-    
-    console.log("📊 Статус ответа:", res.status, res.statusText);
-    
-    if (!res.ok) {
-      throw new Error(`HTTP error! status: ${res.status}`);
-    }
-    
-    const responseText = await res.text();
-    console.log("📝 Текст ответа:", responseText);
-    
-    let wishesData;
+  // Функция для загрузки пожеланий
+  const fetchWishes = async () => {
     try {
-      wishesData = JSON.parse(responseText);
-    } catch (parseError) {
-      console.error("❌ Ошибка парсинга JSON:", parseError);
-      throw new Error("Invalid JSON response");
-    }
-    
-    console.log("✅ Пожелания успешно загружены:", wishesData);
-    
-    // Проверяем, что wishesData существует и является массивом
-    if (!wishesData) {
-      console.warn("⚠️ Получен null или undefined");
-      wishesData = []; // Используем пустой массив
-    }
-    
-    if (!Array.isArray(wishesData)) {
-      console.warn("⚠️ Получены некорректные данные (не массив):", typeof wishesData);
-      wishesData = []; // Используем пустой массив
-    }
-    
-    // Форматируем пожелания в нужный формат
-    const formattedWishes = wishesData
-      .map(wish => `\t|\t${wish.message}\t|\t`)
-      .join("");
+      console.log("🔄 Загрузка пожеланий из БД...");
+      console.log("📡 URL запроса:", `${API_URL}/api/wishes`);
       
-    setTickerWishes(formattedWishes);
-    setTickerError(false);
-  } catch (error) {
-    console.error("❌ Ошибка загрузки пожеланий:", error);
-    setTickerError(true);
-    
-    // Заглушка с примером пожеланий
-    const sampleWishes = [
-      "Счастья и радости!",
-      "Любви и взаимопонимания!",
-      "Крепкого здоровья!",
-      "Процветания и успехов!",
-      "Вечной романтики!",
-      "Мира и гармонии в семье!"
-    ];
-    
-    const formattedSample = sampleWishes
-      .map(wish => `\t|\t${wish}\t|\t`)
-      .join("");
+      const res = await fetch(`${API_URL}/api/wishes`);
       
-    setTickerWishes(formattedSample);
-  }
-};
+      console.log("📊 Статус ответа:", res.status, res.statusText);
+      
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      
+      const responseText = await res.text();
+      console.log("📝 Текст ответа:", responseText);
+      
+      let wishesData;
+      try {
+        wishesData = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error("❌ Ошибка парсинга JSON:", parseError);
+        throw new Error("Invalid JSON response");
+      }
+      
+      console.log("✅ Пожелания успешно загружены:", wishesData);
+      
+      if (!wishesData) {
+        console.warn("⚠️ Получен null или undefined");
+        wishesData = [];
+      }
+      
+      if (!Array.isArray(wishesData)) {
+        console.warn("⚠️ Получены некорректные данные (не массив):", typeof wishesData);
+        wishesData = [];
+      }
+      
+      const formattedWishes = wishesData
+        .map(wish => `\t|\t${wish.message}\t|\t`)
+        .join("");
+        
+      setTickerWishes(formattedWishes);
+      setTickerError(false);
+    } catch (error) {
+      console.error("❌ Ошибка загрузки пожеланий:", error);
+      setTickerError(true);
+      
+      const sampleWishes = [
+        "Счастья и радости!",
+        "Любви и взаимопонимания!",
+        "Крепкого здоровья!",
+        "Процветания и успехов!",
+        "Вечной романтики!",
+        "Мира и гармонии в семье!"
+      ];
+      
+      const formattedSample = sampleWishes
+        .map(wish => `\t|\t${wish}\t|\t`)
+        .join("");
+        
+      setTickerWishes(formattedSample);
+    }
+  };
 
-  // Загрузка при монтировании и каждые 30 секунд
   useEffect(() => {
-    fetchWishes(); // Первоначальная загрузка
+    fetchWishes();
     
     const intervalId = setInterval(() => {
       console.log("🔄 Автоматическое обновление пожеланий...");
       fetchWishes();
-    }, 30000); // Обновление каждые 30 секунд
+    }, 30000);
     
-    return () => clearInterval(intervalId); // Очистка интервала при размонтировании
+    return () => clearInterval(intervalId);
   }, []);
 
-  // Анимация главного экрана
   useEffect(() => {
     if (isInView) {
       controls.start("visible");
@@ -106,37 +102,53 @@ const fetchWishes = async () => {
 
   const handleNewWish = (newWish) => {
     setWishes(prevWishes => [newWish, ...prevWishes]);
-    
-    // Обновляем бегущую строку при добавлении нового пожелания
     console.log("🔄 Обновление бегущей строки новым пожеланием");
     setTickerWishes(prev => `\t|\t${newWish.message}\t|\t${prev}`);
   };
 
-  // Отслеживаем, какой блок в зоне видимости
+  // ИСПРАВЛЕННЫЙ КОД: Правильное отслеживание активной секции
   useEffect(() => {
-    const handleScroll = () => {
-      const gallery = document.getElementById("gallery");
-      const location = document.getElementById("location");
-      const guestbook = document.getElementById("guestbook");
+  const handleScroll = () => {
+    const sections = [
+      { id: "gallery", element: document.getElementById("gallery") },
+      { id: "location", element: document.getElementById("location") },
+      { id: "schedule", element: document.getElementById("schedule") },
+      { id: "guestbook", element: document.getElementById("guestbook") }
+    ].filter(section => section.element); // Фильтруем только существующие элементы
 
-      const scrollPos = window.scrollY + 100;
+    if (sections.length === 0) return;
 
-      if (guestbook && scrollPos >= guestbook.offsetTop) {
-        setActiveSection("guestbook");
-      } else if (location && scrollPos >= location.offsetTop) {
-        setActiveSection("location");
-      } else if (gallery && scrollPos >= gallery.offsetTop) {
-        setActiveSection("gallery");
-      } else {
-        setActiveSection("");
+    const scrollPos = window.scrollY; // Центр экрана
+
+    // Находим секцию, которая находится ближе всего к центру экрана
+    let closestSection = sections[0];
+    let minDistance = Math.abs(sections[0].element.offsetTop - scrollPos);
+
+    for (let i = 1; i < sections.length; i++) {
+      const distance = Math.abs(sections[i].element.offsetTop - scrollPos);
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestSection = sections[i];
       }
-    };
+    }
 
-    window.addEventListener("scroll", handleScroll);
-    handleScroll();
+    // Устанавливаем активную секцию только если мы прокрутили достаточно далеко от hero-section
+    if (scrollPos > sections[0].element.offsetTop - 100) {
+      setActiveSection(closestSection.id);
+    } else {
+      setActiveSection(""); // В hero-section - никакая кнопка не активна
+    }
+  };
 
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  window.addEventListener("scroll", handleScroll);
+  window.addEventListener("resize", handleScroll);
+  handleScroll(); // Вызываем сразу для установки начального состояния
+
+  return () => {
+    window.removeEventListener("scroll", handleScroll);
+    window.removeEventListener("resize", handleScroll);
+  };
+}, []);
 
   // Плавная прокрутка к блоку
   const scrollTo = (id) => {
@@ -181,10 +193,19 @@ const fetchWishes = async () => {
           >
             Пожелания
           </button>
+          <button
+            onClick={() => scrollTo("schedule")}
+            style={{
+              ...styles.button,
+              ...(activeSection === "schedule" && styles.active),
+            }}
+          >
+            Время
+          </button>
         </div>
       </nav>
 
-      {/* 🎉 Главная секция */}
+      {/* Остальной код без изменений */}
       <main style={styles.heroSection}>
         <motion.div
           ref={titleRef}
@@ -208,7 +229,6 @@ const fetchWishes = async () => {
             11.11.2025
           </motion.p>
 
-          {/* 🌸 Розовая полоска с анимацией */}
           <motion.div
             initial={{ scaleX: 0 }}
             animate={{ scaleX: 1 }}
@@ -229,7 +249,6 @@ const fetchWishes = async () => {
             Приглашаем вас разделить с нами этот особенный день
           </motion.p>
 
-          {/* 🎠 Бегущая строка с пожеланиями */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -244,7 +263,7 @@ const fetchWishes = async () => {
                   x: {
                     repeat: Infinity,
                     repeatType: "loop",
-                    duration: 120, // Низкая скорость для чтения
+                    duration: 120,
                     ease: "linear",
                   },
                 }}
@@ -261,27 +280,27 @@ const fetchWishes = async () => {
         </motion.div>
       </main>
 
-      {/* 🖼️ Галерея */}
       <section id="gallery">
         <Gallery />
       </section>
 
-      {/* 📍 Карта */}
       <section id="location">
         <Location />
       </section>
 
-      {/* 📝 Гостевая книга */}
       <section id="guestbook">
         <GuestbookForm onNewWish={handleNewWish} />
+      </section>
+
+      <section id="schedule">
+        <Schedule />
       </section>
     </div>
   );
 }
 
-// ✨ Стили
+// Стили остаются без изменений
 const styles = {
-  // Навбар
   nav: {
     position: "fixed",
     top: 0,
@@ -309,7 +328,7 @@ const styles = {
     fontSize: "1rem",
     color: "#555",
     cursor: "pointer",
-    padding: "8px 12px",
+    padding: "8px 8px",
     borderRadius: "8px",
     transition: "all 0.3s ease",
     whiteSpace: 'nowrap',
@@ -319,8 +338,6 @@ const styles = {
     background: "rgba(244, 194, 217, 0.2)",
     fontWeight: "500",
   },
-
-  // Главная секция
   heroSection: {
     paddingTop: "80px",
     minHeight: "100vh",
@@ -374,8 +391,6 @@ const styles = {
     margin: "20px auto 0",
     fontStyle: "italic",
   },
-  
-  // Бегущая строка
   tickerContainer: {
     width: "100%",
     overflow: "hidden",
@@ -406,7 +421,7 @@ const styles = {
   },
 };
 
-// 🧩 Кастомный хук useInView
+// Кастомный хук useInView без изменений
 const useInView = (ref, options) => {
   const [isInView, setIsInView] = useState(false);
   const [hasBeenViewed, setHasBeenViewed] = useState(false);
