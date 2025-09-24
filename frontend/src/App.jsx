@@ -6,6 +6,7 @@ import Gallery from "./components/Gallery";
 import Location from "./components/Location";
 import GuestbookForm from "./components/GuestbookForm";
 import Schedule from "./components/Schedule";
+import ColorPalette from "./components/ColorPalette";
 
 // Константы
 const API_URL = import.meta.env.VITE_API_URL;
@@ -330,6 +331,10 @@ export default function App() {
 
       <section id="schedule">
         <Schedule />
+      </section>
+
+      <section id="colotpalette">
+        <ColorPalette />
       </section>
 
       {/* Глобальные стили для отключения выделения */}
