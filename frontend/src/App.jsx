@@ -189,6 +189,7 @@ export default function App() {
               ...(isMobile && styles.buttonMobile),
               ...(activeSection === "gallery" && styles.active),
             }}
+            className="no-select" // Добавляем класс для отключения выделения
           >
             {isMobile ? "Фото" : "Галерея"}
           </button>
@@ -199,6 +200,7 @@ export default function App() {
               ...(isMobile && styles.buttonMobile),
               ...(activeSection === "location" && styles.active),
             }}
+            className="no-select"
           >
             {isMobile ? "Карта" : "Место"}
           </button>
@@ -209,6 +211,7 @@ export default function App() {
               ...(isMobile && styles.buttonMobile),
               ...(activeSection === "guestbook" && styles.active),
             }}
+            className="no-select"
           >
             {isMobile ? "Пожелания" : "Гостевая"}
           </button>
@@ -219,6 +222,7 @@ export default function App() {
               ...(isMobile && styles.buttonMobile),
               ...(activeSection === "schedule" && styles.active),
             }}
+            className="no-select"
           >
             {isMobile ? "Время" : "Расписание"}
           </button>
@@ -327,6 +331,39 @@ export default function App() {
       <section id="schedule">
         <Schedule />
       </section>
+
+      {/* Глобальные стили для отключения выделения */}
+      <style jsx global>{`
+        /* Отключаем выделение при нажатии на всех интерактивных элементах */
+        button, 
+        .no-select,
+        [onClick] {
+          -webkit-tap-highlight-color: transparent;
+          -webkit-touch-callout: none;
+          -webkit-user-select: none;
+          -khtml-user-select: none;
+          -moz-user-select: none;
+          -ms-user-select: none;
+          user-select: none;
+          outline: none;
+        }
+        
+        /* Для элементов, которые должны быть доступны для выделения текста */
+        input, textarea {
+          -webkit-user-select: text;
+          -khtml-user-select: text;
+          -moz-user-select: text;
+          -ms-user-select: text;
+          user-select: text;
+        }
+        
+        /* Убираем стандартное выделение при активном состоянии */
+        button:active, 
+        button:focus {
+          outline: none;
+          box-shadow: none;
+        }
+      `}</style>
     </div>
   );
 }
@@ -370,6 +407,9 @@ const styles = {
     transition: "all 0.3s ease",
     whiteSpace: 'nowrap',
     minWidth: 'auto',
+    // Добавляем стили для отключения выделения
+    WebkitTapHighlightColor: 'transparent',
+    outline: 'none',
   },
   buttonMobile: {
     fontSize: "0.85rem",
