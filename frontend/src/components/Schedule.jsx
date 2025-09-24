@@ -1,83 +1,184 @@
 // src/components/Schedule.jsx
+import React, { useState, useCallback, useMemo, memo } from "react";
 import { motion } from "framer-motion";
-import { useState } from "react";
 
-export default function Schedule() {
-  // Анимация для контейнера с задержкой по элементам
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.15,
-      },
+// Анимации выносим за пределы компонента, чтобы они не пересоздавались
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.15,
     },
+  },
+};
+
+const itemVariants = {
+  hidden: { y: 20, opacity: 0 },
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: { duration: 0.4 },
+  },
+};
+
+// Выносим TimelineItem за пределы основного компонента
+const TimelineItem = memo(({ time, title, children, index }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  // Анимация для раскрытия/скрытия контента
+  const contentVariants = {
+    collapsed: { 
+      height: 0, 
+      opacity: 0,
+      transition: { duration: 0.3, ease: "easeInOut" }
+    },
+    expanded: { 
+      height: "auto", 
+      opacity: 1,
+      transition: { duration: 0.3, ease: "easeInOut" }
+    }
   };
 
-  // Анимация отдельного блока
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      transition: { duration: 0.4 },
-    },
-  };
+  const toggleItem = useCallback((e) => {
+    e.stopPropagation();
+    setIsOpen(prev => !prev);
+  }, []);
 
-  // Подкомпонент: один блок расписания (теперь с собственным состоянием)
-  const TimelineItem = ({ time, title, children, index }) => {
-    const [isOpen, setIsOpen] = useState(false);
-
-    // Анимация для раскрытия/скрытия контента
-    const contentVariants = {
-      collapsed: { 
-        height: 0, 
-        opacity: 0,
-        transition: { duration: 0.3, ease: "easeInOut" }
-      },
-      expanded: { 
-        height: "auto", 
-        opacity: 1,
-        transition: { duration: 0.3, ease: "easeInOut" }
-      }
-    };
-
-    const toggleItem = (e) => {
-      e.stopPropagation();
-      setIsOpen(!isOpen);
-    };
-
-    return (
-      <motion.div 
-        variants={itemVariants} 
-        style={styles.item}
-        layout // Добавляем layout анимацию для плавности
-      >
-        <div style={styles.time}>{time}</div>
-        <div style={styles.content}>
-          <div style={styles.header} onClick={toggleItem}>
-            <h3 style={styles.blockTitle}>{title}</h3>
-            <motion.div
-              animate={{ rotate: isOpen ? 90 : 0 }}
-              transition={{ duration: 0.3 }}
-              style={styles.arrow}
-            >
-              ▼
-            </motion.div>
-          </div>
-          
+  return (
+    <motion.div 
+      variants={itemVariants} 
+      style={styles.item}
+      layout
+    >
+      <div style={styles.time}>{time}</div>
+      <div style={styles.content}>
+        <div style={styles.header} onClick={toggleItem}>
+          <h3 style={styles.blockTitle}>{title}</h3>
           <motion.div
-            variants={contentVariants}
-            initial="collapsed"
-            animate={isOpen ? "expanded" : "collapsed"}
-            style={styles.contentInner}
+            animate={{ rotate: isOpen ? 180 : 0 }}
+            transition={{ duration: 0.3 }}
+            style={styles.arrow}
           >
-            {children}
+            ▼
           </motion.div>
         </div>
-      </motion.div>
-    );
-  };
+        
+        <motion.div
+          variants={contentVariants}
+          initial="collapsed"
+          animate={isOpen ? "expanded" : "collapsed"}
+          style={styles.contentInner}
+        >
+          {children}
+        </motion.div>
+      </div>
+    </motion.div>
+  );
+});
+
+// Основной компонент Schedule
+const Schedule = () => {
+  // Используем useMemo для данных расписания, чтобы они не пересоздавались при каждом рендере
+  const scheduleData = useMemo(() => [
+    {
+      time: "13:00 – 14:00",
+      title: "Приветствие гостей и Welcome-зона",
+      content: (
+        <ul style={styles.list}>
+          <li>Гости прибывают, их встречают молодожёны или координатор</li>
+          <li>Работает зона с напитками и закусками</li>
+          <li>«Полароид» — мгновенные снимки на память</li>
+        </ul>
+      )
+    },
+    {
+      time: "14:00 – 14:30",
+      title: "Выездная церемония бракосочетания",
+      content: (
+        <ul style={styles.list}>
+          <li>Начало церемонии. Гости занимают свои места</li>
+          <li>Обмен кольцами.</li>
+          <li>Первые поздравления и общая фотосессия</li>
+        </ul>
+      )
+    },
+    {
+      time: "14:30 – 15:20",
+      title: "Первый банкетный блок: знакомство и атмосфера",
+      content: (
+        <ul style={styles.list}>
+          <li>Приветственный тост родителей</li>
+          <li>Первый тост молодожёнов</li>
+          <li>Объявление правил свадьбы (в шуточной форме)</li>
+          <li>Интерактив на сплочение</li>
+          <li>«Смешной квиз о паре»</li>
+        </ul>
+      )
+    },
+    {
+      time: "15:20 – 15:40",
+      title: "Музыкальная пауза",
+      content: <p style={styles.text}>Гости общаются, танцуют, продолжают трапезу</p>
+    },
+    {
+      time: "15:40 – 16:30",
+      title: "Второй банкетный блок: развлечения и энергия",
+      content: (
+        <ul style={styles.list}>
+          <li><strong>Первый танец молодожёнов</strong> — романтичный выход пары</li>
+          <li>Интерактивные игры: «Кто лучше знает молодожёнов?»</li>
+          <li>«Своя игра» с музыкальным сопровождением</li>
+          <li><strong>Общая ламбада!</strong> Все в танец!</li>
+        </ul>
+      )
+    },
+    {
+      time: "16:30 – 16:50",
+      title: "Музыкальная пауза",
+      content: <p style={styles.text}>Свободное время для гостей</p>
+    },
+    {
+      time: "16:50 – 18:30",
+      title: "Танцевально-развлекательная программа",
+      content: (
+        <ul style={styles.list}>
+          <li>Конкурсы: весёлые и подвижные игры</li>
+          <li>Музыкальное бинго — угадывай мелодии и выигрывай призы</li>
+          <li><strong>Букет и бутоньерка</strong> — в оригинальной форме (револьвер, алкотестер)</li>
+          <li><strong>Создание семейного очага</strong> — ритуал объединения огней двух семей</li>
+        </ul>
+      )
+    },
+    {
+      time: "17:50 – 18:30",
+      title: "Свободные танцы",
+      content: <p style={styles.text}>Гости отдыхают, общаются и танцуют</p>
+    },
+    {
+      time: "18:30 – 19:40",
+      title: "Финальная часть праздника",
+      content: (
+        <ul style={styles.list}>
+          <li><strong>Вынос и разрезание торта</strong> — торжественный момент</li>
+          <li>«Продажа» первого куска на удачу (средства — в копилку молодых)</li>
+          <li>Второй и третий кусок — в подарок мамам</li>
+          <li>Народные танцы: «Кадышева», хоровод — все вместе!</li>
+        </ul>
+      )
+    },
+    {
+      time: "19:40 - 20:00",
+      title: "Финальный аккорд",
+      content: (
+        <ul style={styles.list}>
+          <li>Общий финальный танец или салют (по желанию)</li>
+          <li>Благодарственное слово молодожёнов</li>
+          <li>Официальная программа завершена. Начинается вечеринка для желающих продолжить!</li>
+        </ul>
+      )
+    }
+  ], []);
 
   return (
     <section id="schedule" style={styles.section}>
@@ -85,102 +186,32 @@ export default function Schedule() {
         <h2 style={styles.title}>План свадьбы</h2>
         <p style={styles.subtitle}>Каждый момент — часть нашей истории</p>
 
-        {/* Основная временная шкала */}
         <motion.div
           variants={containerVariants}
           initial="hidden"
           animate="visible"
           style={styles.timeline}
         >
-          {/* Блок 1: Welcome-зона */}
-          <TimelineItem time="13:00 – 14:00" title="Приветствие гостей и Welcome-зона" index={0}>
-            <ul style={styles.list}>
-              <li>Гости прибывают, их встречают молодожёны или координатор</li>
-              <li>Работает зона с напитками и закусками</li>
-              <li>«Полароид» — мгновенные снимки на память</li>
-            </ul>
-          </TimelineItem>
-
-          {/* Блок 2: Церемония */}
-          <TimelineItem time="14:00 – 14:30" title="Выездная церемония бракосочетания" index={1}>
-            <ul style={styles.list}>
-              <li>Начало церемонии. Гости занимают свои места</li>
-              <li>Обмен кольцами.</li>
-              <li>Первые поздравления и общая фотосессия</li>
-            </ul>
-          </TimelineItem>
-
-          {/* Блок 3: Первый банкет */}
-          <TimelineItem time="14:30 – 15:20" title="Первый банкетный блок: знакомство и атмосфера" index={2}>
-            <ul style={styles.list}>
-              <li>Приветственный тост родителей</li>
-              <li>Первый тост молодожёнов</li>
-              <li>Объявление правил свадьбы (в шуточной форме)</li>
-              <li>Интерактив на сплочение</li>
-              <li>«Смешной квиз о паре»</li>
-            </ul>
-          </TimelineItem>
-
-          {/* Блок 4: Музыкальная пауза */}
-          <TimelineItem time="15:20 – 15:40" title="Музыкальная пауза" index={3}>
-            <p style={styles.text}>Гости общаются, танцуют, продолжают трапезу</p>
-          </TimelineItem>
-
-          {/* Блок 5: Второй банкет */}
-          <TimelineItem time="15:40 – 16:30" title="Второй банкетный блок: развлечения и энергия" index={4}>
-            <ul style={styles.list}>
-              <li><strong>Первый танец молодожёнов</strong> — романтичный выход пары</li>
-              <li>Интерактивные игры: «Кто лучше знает молодожёнов?»</li>
-              <li>«Своя игра» с музыкальным сопровождением</li>
-              <li><strong>Общая ламбада!</strong> Все в танец!</li>
-            </ul>
-          </TimelineItem>
-
-          {/* Блок 6: Пауза */}
-          <TimelineItem time="16:30 – 16:50" title="Музыкальная пауза" index={5}>
-            <p style={styles.text}>Свободное время для гостей</p>
-          </TimelineItem>
-
-          {/* Блок 7: Развлечения */}
-          <TimelineItem time="16:50 – 18:30" title="Танцевально-развлекательная программа" index={6}>
-            <ul style={styles.list}>
-              <li>Конкурсы: весёлые и подвижные игры</li>
-              <li>Музыкальное бинго — угадывай мелодии и выигрывай призы</li>
-              <li><strong>Букет и бутоньерка</strong> — в оригинальной форме (револьвер, алкотестер)</li>
-              <li><strong>Создание семейного очага</strong> — ритуал объединения огней двух семей</li>
-            </ul>
-          </TimelineItem>
-
-          {/* Блок 8: Свободные танцы */}
-          <TimelineItem time="17:50 – 18:30" title="Свободные танцы" index={7}>
-            <p style={styles.text}>Гости отдыхают, общаются и танцуют</p>
-          </TimelineItem>
-
-          {/* Блок 9: Финал */}
-          <TimelineItem time="18:30 – 19:40" title="Финальная часть праздника" index={8}>
-            <ul style={styles.list}>
-              <li><strong>Вынос и разрезание торта</strong> — торжественный момент</li>
-              <li>«Продажа» первого куска на удачу (средства — в копилку молодых)</li>
-              <li>Второй и третий кусок — в подарок мамам</li>
-              <li>Народные танцы: «Кадышева», хоровод — все вместе!</li>
-            </ul>
-          </TimelineItem>
-
-          {/* Блок 10: Финальный аккорд */}
-          <TimelineItem time="19:40 - 20:00" title="Финальный аккорд" index={9}>
-            <ul style={styles.list}>
-              <li>Общий финальный танец или салют (по желанию)</li>
-              <li>Благодарственное слово молодожёнов</li>
-              <li>Официальная программа завершена. Начинается вечеринка для желающих продолжить!</li>
-            </ul>
-          </TimelineItem>
+          {scheduleData.map((item, index) => (
+            <TimelineItem
+              key={index}
+              time={item.time}
+              title={item.title}
+              index={index}
+            >
+              {item.content}
+            </TimelineItem>
+          ))}
         </motion.div>
       </div>
     </section>
   );
-}
+};
 
-// Стили
+// Экспортируем компонент с memo для предотвращения лишних рендеров
+export default memo(Schedule);
+
+// Стили (без изменений)
 const styles = {
   section: {
     padding: "60px 20px",

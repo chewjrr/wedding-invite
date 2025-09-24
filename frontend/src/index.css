@@ -1,4 +1,3 @@
-
 :root {
   --color-primary: #f9e7eb;   /* нежно-розовый */
   --color-secondary: #e6f4f1; /* нежно-бирюзовый */
@@ -13,6 +12,14 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  /* Отключаем выделение при нажатии */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }
 
 body {
@@ -21,6 +28,32 @@ body {
   color: var(--color-text);
   line-height: 1.6;
   overflow-x: hidden;
+}
+
+/* Разрешаем выделение текста в полях ввода и текстовых областях */
+input,
+textarea,
+[contenteditable="true"] {
+  -webkit-user-select: text;
+  -khtml-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+
+/* Убираем стандартный outline при фокусе, но добавляем кастомный для доступности */
+button:focus,
+a:focus,
+input:focus,
+textarea:focus {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Для кнопок при активном состоянии (нажатии) */
+button:active {
+  transform: scale(0.98);
+  transition: transform 0.1s ease;
 }
 
 ::-webkit-scrollbar {
@@ -41,4 +74,55 @@ body {
   100% {
     transform: translateX(-100%);
   }
+}
+
+/* Дополнительные глобальные стили для улучшения UX */
+
+/* Плавная прокрутка для всего сайта */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Улучшение рендеринга шрифтов */
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeSpeed;
+}
+
+/* Оптимизация для мобильных устройств */
+@media (max-width: 768px) {
+  body {
+    -webkit-text-size-adjust: 100%;
+  }
+}
+
+/* Стили для изображений */
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Сброс стилей для кнопок */
+button {
+  background: none;
+  border: none;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* Сброс стилей для ссылок */
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Улучшение читаемости для длинного текста */
+p {
+  text-wrap: pretty;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  text-wrap: balance;
 }
