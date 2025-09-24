@@ -280,7 +280,7 @@ func getTelegramFileURL(fileID string) (string, error) {
 	}
 
 	if !result.Ok {
-		return "", fmt.Errorf("Telegram API error")
+		return "", fmt.Errorf("telegram API error")
 	}
 
 	return fmt.Sprintf("https://api.telegram.org/file/bot%s/%s", token, result.Result.FilePath), nil

@@ -18,47 +18,72 @@ export default function App() {
   const [tickerWishes, setTickerWishes] = useState("");
   const [tickerError, setTickerError] = useState(false);
 
-  // Функция для загрузки пожеланий
-  const fetchWishes = async () => {
-    try {
-      console.log("🔄 Загрузка пожеланий из БД...");
-      const res = await fetch(`${API_URL}/api/wishes`);
-      
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
-      }
-      
-      const wishesData = await res.json();
-      console.log("✅ Пожелания успешно загружены:", wishesData);
-      
-      // Форматируем пожелания в нужный формат
-      const formattedWishes = wishesData
-        .map(wish => `\t|\t${wish.message}\t|\t`)
-        .join("");
-        
-      setTickerWishes(formattedWishes);
-      setTickerError(false);
-    } catch (error) {
-      console.error("❌ Ошибка загрузки пожеланий:", error);
-      setTickerError(true);
-      
-      // Заглушка с примером пожеланий
-      const sampleWishes = [
-        "Счастья и радости!",
-        "Любви и взаимопонимания!",
-        "Крепкого здоровья!",
-        "Процветания и успехов!",
-        "Вечной романтики!",
-        "Мира и гармонии в семье!"
-      ];
-      
-      const formattedSample = sampleWishes
-        .map(wish => `\t|\t${wish}\t|\t`)
-        .join("");
-        
-      setTickerWishes(formattedSample);
+// Функция для загрузки пожеланий
+const fetchWishes = async () => {
+  try {
+    console.log("🔄 Загрузка пожеланий из БД...");
+    console.log("📡 URL запроса:", `${API_URL}/api/wishes`);
+    
+    const res = await fetch(`${API_URL}/api/wishes`);
+    
+    console.log("📊 Статус ответа:", res.status, res.statusText);
+    
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`);
     }
-  };
+    
+    const responseText = await res.text();
+    console.log("📝 Текст ответа:", responseText);
+    
+    let wishesData;
+    try {
+      wishesData = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error("❌ Ошибка парсинга JSON:", parseError);
+      throw new Error("Invalid JSON response");
+    }
+    
+    console.log("✅ Пожелания успешно загружены:", wishesData);
+    
+    // Проверяем, что wishesData существует и является массивом
+    if (!wishesData) {
+      console.warn("⚠️ Получен null или undefined");
+      wishesData = []; // Используем пустой массив
+    }
+    
+    if (!Array.isArray(wishesData)) {
+      console.warn("⚠️ Получены некорректные данные (не массив):", typeof wishesData);
+      wishesData = []; // Используем пустой массив
+    }
+    
+    // Форматируем пожелания в нужный формат
+    const formattedWishes = wishesData
+      .map(wish => `\t|\t${wish.message}\t|\t`)
+      .join("");
+      
+    setTickerWishes(formattedWishes);
+    setTickerError(false);
+  } catch (error) {
+    console.error("❌ Ошибка загрузки пожеланий:", error);
+    setTickerError(true);
+    
+    // Заглушка с примером пожеланий
+    const sampleWishes = [
+      "Счастья и радости!",
+      "Любви и взаимопонимания!",
+      "Крепкого здоровья!",
+      "Процветания и успехов!",
+      "Вечной романтики!",
+      "Мира и гармонии в семье!"
+    ];
+    
+    const formattedSample = sampleWishes
+      .map(wish => `\t|\t${wish}\t|\t`)
+      .join("");
+      
+    setTickerWishes(formattedSample);
+  }
+};
 
   // Загрузка при монтировании и каждые 30 секунд
   useEffect(() => {
