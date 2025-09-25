@@ -89,7 +89,7 @@ export default function GuestbookForm({ onNewWish }) {
     return (
         <>
             <section style={formStyles.section}>
-                <h2 style={formStyles.heading}>Оставить пожелание</h2>
+                <h2 style={formStyles.heading}>Будем рады вашим теплым словам 😊</h2>
                 <form onSubmit={handleSubmit} style={formStyles.form}>
                     <input
                         type="text"

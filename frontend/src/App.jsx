@@ -1,12 +1,12 @@
 import { motion, useAnimation } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 
-// Компоненты
 import Gallery from "./components/Gallery";
 import Location from "./components/Location";
 import GuestbookForm from "./components/GuestbookForm";
-import Schedule from "./components/Schedule";
 import ColorPalette from "./components/ColorPalette";
+import Gifts from "./components/Gifts"; 
+import Footer from "./components/Footer";
 
 // Константы
 const API_URL = import.meta.env.VITE_API_URL;
@@ -122,47 +122,48 @@ export default function App() {
 
   // ИСПРАВЛЕННЫЙ КОД: Правильное отслеживание активной секции
   useEffect(() => {
-  const handleScroll = () => {
-    const sections = [
-      { id: "gallery", element: document.getElementById("gallery") },
-      { id: "location", element: document.getElementById("location") },
-      { id: "schedule", element: document.getElementById("schedule") },
-      { id: "guestbook", element: document.getElementById("guestbook") }
-    ].filter(section => section.element); // Фильтруем только существующие элементы
+    const handleScroll = () => {
+      const sections = [
+        { id: "gallery", element: document.getElementById("gallery") },
+        { id: "location", element: document.getElementById("location") },
+        { id: "guestbook", element: document.getElementById("guestbook") },
+        { id: "colorpalette", element: document.getElementById("colorpalette") },
+        { id: "gifts", element: document.getElementById("gifts") } // ✅ Добавлено
+      ].filter(section => section.element); // Фильтруем только существующие элементы
 
-    if (sections.length === 0) return;
+      if (sections.length === 0) return;
 
-    const scrollPos = window.scrollY; // Центр экрана
+      const scrollPos = window.scrollY; // Центр экрана
 
-    // Находим секцию, которая находится ближе всего к центру экрана
-    let closestSection = sections[0];
-    let minDistance = Math.abs(sections[0].element.offsetTop - scrollPos);
+      // Находим секцию, которая находится ближе всего к центру экрана
+      let closestSection = sections[0];
+      let minDistance = Math.abs(sections[0].element.offsetTop - scrollPos);
 
-    for (let i = 1; i < sections.length; i++) {
-      const distance = Math.abs(sections[i].element.offsetTop - scrollPos);
-      if (distance < minDistance) {
-        minDistance = distance;
-        closestSection = sections[i];
+      for (let i = 1; i < sections.length; i++) {
+        const distance = Math.abs(sections[i].element.offsetTop - scrollPos);
+        if (distance < minDistance) {
+          minDistance = distance;
+          closestSection = sections[i];
+        }
       }
-    }
 
-    // Устанавливаем активную секцию только если мы прокрутили достаточно далеко от hero-section
-    if (scrollPos > sections[0].element.offsetTop - 100) {
-      setActiveSection(closestSection.id);
-    } else {
-      setActiveSection(""); // В hero-section - никакая кнопка не активна
-    }
-  };
+      // Устанавливаем активную секцию только если мы прокрутили достаточно далеко от hero-section
+      if (scrollPos > sections[0].element.offsetTop - 100) {
+        setActiveSection(closestSection.id);
+      } else {
+        setActiveSection(""); // В hero-section - никакая кнопка не активна
+      }
+    };
 
-  window.addEventListener("scroll", handleScroll);
-  window.addEventListener("resize", handleScroll);
-  handleScroll(); // Вызываем сразу для установки начального состояния
+    window.addEventListener("scroll", handleScroll);
+    window.addEventListener("resize", handleScroll);
+    handleScroll(); // Вызываем сразу для установки начального состояния
 
-  return () => {
-    window.removeEventListener("scroll", handleScroll);
-    window.removeEventListener("resize", handleScroll);
-  };
-}, []);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleScroll);
+    };
+  }, []);
 
   // Плавная прокрутка к блоку
   const scrollTo = (id) => {
@@ -190,7 +191,7 @@ export default function App() {
               ...(isMobile && styles.buttonMobile),
               ...(activeSection === "gallery" && styles.active),
             }}
-            className="no-select" // Добавляем класс для отключения выделения
+            className="no-select"
           >
             {isMobile ? "Фото" : "Галерея"}
           </button>
@@ -217,20 +218,31 @@ export default function App() {
             {isMobile ? "Пожелания" : "Гостевая"}
           </button>
           <button
-            onClick={() => scrollTo("schedule")}
+            onClick={() => scrollTo("colorpalette")}
             style={{
               ...styles.button,
               ...(isMobile && styles.buttonMobile),
-              ...(activeSection === "schedule" && styles.active),
+              ...(activeSection === "colorpalette" && styles.active),
             }}
             className="no-select"
           >
-            {isMobile ? "Время" : "Расписание"}
+            {isMobile ? "Гамма" : "Цвета"}
+          </button>
+          {/* ✅ Новая кнопка "Подарки" */}
+          <button
+            onClick={() => scrollTo("gifts")}
+            style={{
+              ...styles.button,
+              ...(isMobile && styles.buttonMobile),
+              ...(activeSection === "gifts" && styles.active),
+            }}
+            className="no-select"
+          >
+            {isMobile ? "Подарки" : "Подарки"}
           </button>
         </div>
       </nav>
 
-      {/* Остальной код без изменений */}
       <main style={styles.heroSection}>
         <motion.div
           ref={titleRef}
@@ -243,9 +255,9 @@ export default function App() {
             ...styles.title,
             ...(isMobile && styles.titleMobile)
           }}>
-            Екатерина
-            <span style={styles.heart}> & </span>
             Всеволод
+            <span style={styles.heart}> & </span>
+            Екатерина
           </h1>
 
           <motion.p
@@ -329,17 +341,24 @@ export default function App() {
         <GuestbookForm onNewWish={handleNewWish} />
       </section>
 
-      <section id="schedule">
+      {/* <section id="schedule">
         <Schedule />
+      </section> */}
+
+      <section id="colorpalette">
+        <ColorPalette />
       </section>
 
-      <section id="colotpalette">
-        <ColorPalette />
+      <section id="gifts">
+        <Gifts />
+      </section>
+
+      <section id="footer">
+        <Footer />
       </section>
 
       {/* Глобальные стили для отключения выделения */}
       <style jsx global>{`
-        /* Отключаем выделение при нажатии на всех интерактивных элементах */
         button, 
         .no-select,
         [onClick] {
@@ -353,7 +372,6 @@ export default function App() {
           outline: none;
         }
         
-        /* Для элементов, которые должны быть доступны для выделения текста */
         input, textarea {
           -webkit-user-select: text;
           -khtml-user-select: text;
@@ -362,9 +380,7 @@ export default function App() {
           user-select: text;
         }
         
-        /* Убираем стандартное выделение при активном состоянии */
-        button:active, 
-        button:focus {
+        button:active, button:focus {
           outline: none;
           box-shadow: none;
         }
@@ -373,7 +389,7 @@ export default function App() {
   );
 }
 
-// Стили с адаптивностью
+// Стили с адаптивностью (без изменений)
 const styles = {
   nav: {
     position: "fixed",
@@ -412,7 +428,6 @@ const styles = {
     transition: "all 0.3s ease",
     whiteSpace: 'nowrap',
     minWidth: 'auto',
-    // Добавляем стили для отключения выделения
     WebkitTapHighlightColor: 'transparent',
     outline: 'none',
   },

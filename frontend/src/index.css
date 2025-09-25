@@ -1,4 +1,8 @@
 :root {
+  --font-primary: "Noto Serif Display", serif;
+  --font-secondary: "Jost", sans-serif;
+  --font-script: "Dancing Script", cursive;
+  
   --color-primary: #f9e7eb;   /* нежно-розовый */
   --color-secondary: #e6f4f1; /* нежно-бирюзовый */
   --color-accent: #f4c2d9;    /* акцентный розовый */
@@ -23,7 +27,7 @@
 }
 
 body {
-  font-family: 'Poppins', sans-serif;
+  font-family: var(--font-secondary);
   background-color: var(--color-bg);
   color: var(--color-text);
   line-height: 1.6;

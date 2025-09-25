@@ -47,7 +47,7 @@ export default function Location() {
           style={styles.text}
         >
           <p style={styles.time}>
-            <strong>Сбор:</strong> с 13:30
+            <strong>Сбор:</strong> с 13:00
             <br />
             <strong>Начало:</strong> в 14:00
           </p>
