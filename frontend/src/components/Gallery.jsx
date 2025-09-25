@@ -6,9 +6,9 @@ import { useAnimation } from "framer-motion";
 
 const photos = [
   { src: "/images/photo1.jpg", alt: "2к17 селфи йоу броу" },
-  { src: "/images/photo2.jpg", alt: "Катя борец" },
+  //{ src: "/images/photo2.jpg", alt: "Катя борец" },
   { src: "/images/photo3.jpg", alt: "Сева даун" },
-  { src: "/images/photo4.jpg", alt: "ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ" },
+  //{ src: "/images/photo4.jpg", alt: "ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ" },
 ];
 
 export default function Gallery() {
