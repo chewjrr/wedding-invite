@@ -5,10 +5,22 @@ import { FaPlus, FaMinus } from "react-icons/fa";
 import { useAnimation } from "framer-motion";
 
 const photos = [
-  { src: "/images/photo1.jpg", alt: "2к17 селфи йоу броу" },
-  //{ src: "/images/photo2.jpg", alt: "Катя борец" },
-  { src: "/images/photo3.jpg", alt: "Сева даун" },
-  //{ src: "/images/photo4.jpg", alt: "ЫЫЫЫЫЫЫЫЫЫЫЫЫЫЫ" },
+  { src: "/images/photo11.jpg", alt: "Первое свидание" },
+  { src: "/images/photo8.jpg", alt: "Первое знакомство с родителями" },
+  { src: "/images/photo9.jpg", alt: "Первая совместная аватарка" },
+  { src: "/images/photo10.jpg", alt: "В аквапарке реально обалденно" },
+  { src: "/images/photo7.jpg", alt: "Крутые в очках 😎" },
+  { src: "/images/photo2.jpg", alt: "Были на концерте Cream Soda" },
+  { src: "/images/photo12.jpg", alt: "Отметили масленицу" },
+  { src: "/images/photo17.jpg", alt: "ДЕНЬ РОЖДЕНИЯ КАТИ 🎉" },
+  { src: "/images/photo1.jpg", alt: "Снова на ВДНХ" },
+  { src: "/images/photo13.jpg", alt: "Ждали салют на День России" },
+  { src: "/images/photo4.jpg", alt: "Купались в Долгопрудном" },
+  { src: "/images/photo14.jpg", alt: "Пенная вечеринка пидиди" },
+  { src: "/images/photo5.jpg", alt: "Отмечали день рождения мамы" },
+  { src: "/images/photo15.jpg", alt: "Отмечали 30 лет брака (не нашего) (пока)" },
+  { src: "/images/photo6.jpg", alt: "Предложение!!!" },
+  { src: "/images/photo16.jpg", alt: "И еще немного после предложения 😊" },
 ];
 
 export default function Gallery() {
