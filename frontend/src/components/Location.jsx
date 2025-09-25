@@ -47,9 +47,8 @@ export default function Location() {
           style={styles.text}
         >
           <p style={styles.time}>
-            <strong>Сбор:</strong> с 13:00
+            <strong>Начало:</strong>  13:00
             <br />
-            <strong>Начало:</strong> в 14:00
           </p>
           <p style={styles.address}>
             1-й Красногвардейский проезд, 19, второй этаж
